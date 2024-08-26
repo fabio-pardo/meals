@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"net/http"
 	"time"
 
@@ -90,6 +89,5 @@ func getMealById(c *gin.Context) {
 		return
 	}
 
-	fmt.Printf("hey reached here")
 	c.IndentedJSON(http.StatusFound, meal)
 }
