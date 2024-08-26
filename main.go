@@ -9,6 +9,8 @@ import (
 	"gorm.io/gorm"
 )
 
+var DB *gorm.DB
+
 type Meal struct {
 	CreatedAt time.Time `gorm:"type:timestamp; default:current_timestamp"`
 	Name      string    `json:"name" gorm:"size:255; not null"`
@@ -17,7 +19,7 @@ type Meal struct {
 }
 
 func main() {
-	migrateDB()
+	initDB()
 
 	router := gin.Default()
 	router.GET("/meals", getMeals)
@@ -27,43 +29,36 @@ func main() {
 	router.Run("localhost:8080")
 }
 
-func migrateDB() *gorm.DB {
-	db, err := connectDB()
-	if err != nil {
-		panic("Failed to connect to the DB")
-	}
-
-	if err := db.AutoMigrate(&Meal{}); err != nil {
-		panic("Failed to migrate database schema")
-	}
-	return db
-}
-
-func connectDB() (*gorm.DB, error) {
+func initDB() {
 	dsn := "host=localhost user=test password=test dbname=test port=5432 sslmode=disable"
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
-	return db, err
+	var err error
+	DB, err = gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	if err != nil {
+		panic("Failed to connect to the DB: " + err.Error())
+	}
+	if err := DB.AutoMigrate(&Meal{}); err != nil {
+		panic("Failed to migrate database schema: " + err.Error())
+	}
 }
 
 func getMeals(c *gin.Context) {
-	c.JSON(http.StatusOK, "")
+	var meals []Meal
+	if err := DB.Find(&meals).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve meals"})
+		return
+	}
+	c.JSON(http.StatusOK, meals)
 }
 
 func postMeals(c *gin.Context) {
 	var newMeal Meal
 
-	db, err := connectDB()
-	if err != nil {
-		panic("Failed to connect to DB")
-	}
-
-	// Bind the received JSON to newMeal (excluding ID)
 	if err := c.BindJSON(&newMeal); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON"})
 		return
 	}
 
-	if err := db.Create(&newMeal).Error; err != nil {
+	if err := DB.Create(&newMeal).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create meal"})
 		return
 	}
@@ -75,19 +70,14 @@ func getMealById(c *gin.Context) {
 	id := c.Param("id")
 	var meal Meal
 
-	db, err := connectDB()
-	if err != nil {
-		panic("Failed to connect to DB")
-	}
-
-	if err := db.First(&meal, id).Error; err != nil {
+	if err := DB.First(&meal, id).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			c.IndentedJSON(http.StatusNotFound, gin.H{"message": "meal not found"})
+			c.JSON(http.StatusNotFound, gin.H{"message": "meal not found"})
 		} else {
-			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve meal"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve meal"})
 		}
 		return
 	}
 
-	c.IndentedJSON(http.StatusFound, meal)
+	c.JSON(http.StatusOK, meal)
 }
