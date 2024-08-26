@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 
@@ -45,7 +46,6 @@ func connectDB() (*gorm.DB, error) {
 	return db, err
 }
 
-// getMeals responds with the list of all meals as JSON.
 func getMeals(c *gin.Context) {
 	c.JSON(http.StatusOK, "")
 }
@@ -73,5 +73,23 @@ func postMeals(c *gin.Context) {
 }
 
 func getMealById(c *gin.Context) {
-	c.IndentedJSON(http.StatusNotFound, gin.H{"message": "meal not found"})
+	id := c.Param("id")
+	var meal Meal
+
+	db, err := connectDB()
+	if err != nil {
+		panic("Failed to connect to DB")
+	}
+
+	if err := db.First(&meal, id).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			c.IndentedJSON(http.StatusNotFound, gin.H{"message": "meal not found"})
+		} else {
+			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve meal"})
+		}
+		return
+	}
+
+	fmt.Printf("hey reached here")
+	c.IndentedJSON(http.StatusFound, meal)
 }
