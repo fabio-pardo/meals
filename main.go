@@ -2,6 +2,7 @@ package main
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/driver/postgres"
@@ -9,9 +10,10 @@ import (
 )
 
 type Meal struct {
-	ID    string  `gorm:"primaryKey" json:"id"`
-	Name  string  `json:"name"`
-	Price float64 `json:"price"`
+	CreatedAt time.Time `gorm:"type:timestamp; default:current_timestamp"`
+	ID        string    `gorm:"primaryKey" json:"id"`
+	Name      string    `json:"name" gorm:"size:255; not null"`
+	Price     float64   `json:"price" gorm:"not null"`
 }
 
 var meals = []Meal{
