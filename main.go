@@ -11,15 +11,9 @@ import (
 
 type Meal struct {
 	CreatedAt time.Time `gorm:"type:timestamp; default:current_timestamp"`
-	ID        string    `gorm:"primaryKey" json:"id"`
 	Name      string    `json:"name" gorm:"size:255; not null"`
+	ID        uint      `gorm:"primaryKey; autoIncrement; not null"`
 	Price     float64   `json:"price" gorm:"not null"`
-}
-
-var meals = []Meal{
-	{ID: "1", Name: "Lasagna", Price: 10.99},
-	{ID: "2", Name: "Pizza", Price: 10.99},
-	{ID: "3", Name: "Sushi", Price: 10.99},
 }
 
 func main() {
@@ -34,8 +28,7 @@ func main() {
 }
 
 func migrateDB() *gorm.DB {
-	dsn := "host=localhost user=test password=test dbname=test port=5432 sslmode=disable"
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	db, err := connectDB()
 	if err != nil {
 		panic("Failed to connect to the DB")
 	}
@@ -46,31 +39,39 @@ func migrateDB() *gorm.DB {
 	return db
 }
 
+func connectDB() (*gorm.DB, error) {
+	dsn := "host=localhost user=test password=test dbname=test port=5432 sslmode=disable"
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	return db, err
+}
+
 // getMeals responds with the list of all meals as JSON.
 func getMeals(c *gin.Context) {
-	c.JSON(http.StatusOK, meals)
+	c.JSON(http.StatusOK, "")
 }
 
 func postMeals(c *gin.Context) {
 	var newMeal Meal
 
-	// Call BindJSON to bind the received JSON to newMeal
+	db, err := connectDB()
+	if err != nil {
+		panic("Failed to connect to DB")
+	}
+
+	// Bind the received JSON to newMeal (excluding ID)
 	if err := c.BindJSON(&newMeal); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON"})
 		return
 	}
 
-	meals = append(meals, newMeal)
+	if err := db.Create(&newMeal).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create meal"})
+		return
+	}
+
 	c.JSON(http.StatusCreated, newMeal)
 }
 
 func getMealById(c *gin.Context) {
-	id := c.Param("id")
-
-	for _, m := range meals {
-		if m.ID == id {
-			c.IndentedJSON(http.StatusOK, m)
-			return
-		}
-	}
 	c.IndentedJSON(http.StatusNotFound, gin.H{"message": "meal not found"})
 }
