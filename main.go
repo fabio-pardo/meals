@@ -12,10 +12,30 @@ import (
 var DB *gorm.DB
 
 type Meal struct {
-	CreatedAt time.Time `gorm:"type:timestamp; default:current_timestamp"`
-	Name      string    `json:"name" gorm:"size:255; not null"`
-	ID        uint      `gorm:"primaryKey; autoIncrement; not null"`
+	ID        uint      `gorm:"primaryKey;autoIncrement;not null"`
+	CreatedAt time.Time `gorm:"autoCreateTime;not null"`
+	Name      string    `json:"name" gorm:"size:255;not null"`
 	Price     float64   `json:"price" gorm:"not null"`
+}
+
+type Menu struct {
+	ID            uint       `gorm:"primaryKey;autoIncrement;not null"`
+	WeekStartDate time.Time  `gorm:"not null"`
+	WeekEndDate   time.Time  `gorm:"not null"`
+	CreatedAt     time.Time  `gorm:"autoCreateTime;not null"`
+	UpdatedAt     time.Time  `gorm:"autoUpdateTime;not null"`
+	MenuMeals     []MenuMeal `gorm:"foreignKey:MenuID;constraint:OnUpdate:CASCADE;OnDelete:SET NULL;"`
+}
+
+type MenuMeal struct {
+	ID          uint      `gorm:"primaryKey;autoIncrement"`
+	CreatedAt   time.Time `gorm:"autoCreateTime;not null"`
+	UpdatedAt   time.Time `gorm:"autoUpdateTime;not null"`
+	DeliveryDay string    `gorm:"type:varchar(20);not null"`
+	MenuID      uint      `gorm:"not null"`                                                        // Foreign key to Menu
+	MealID      uint      `gorm:"not null"`                                                        // Foreign key to Meal
+	Menu        Menu      `gorm:"foreignKey:MenuID;constraint:OnDelete:CASCADE;OnUpdate:CASCADE;"` // Reference to Menu
+	Meal        Meal      `gorm:"foreignKey:MealID;constraint:OnDelete:CASCADE;OnUpdate:CASCADE;"` // Reference to Meal
 }
 
 func main() {
@@ -36,7 +56,7 @@ func initDB() {
 	if err != nil {
 		panic("Failed to connect to the DB: " + err.Error())
 	}
-	if err := DB.AutoMigrate(&Meal{}); err != nil {
+	if err := DB.AutoMigrate(&Meal{}, &Menu{}, &MenuMeal{}); err != nil {
 		panic("Failed to migrate database schema: " + err.Error())
 	}
 }
