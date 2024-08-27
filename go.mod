@@ -1,4 +1,4 @@
-module example/meals
+module meals
 
 go 1.22.5
 
