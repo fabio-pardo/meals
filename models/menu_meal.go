@@ -10,5 +10,5 @@ type MenuMeal struct {
 	MenuID      uint      `gorm:"not null"`                                                        // Foreign key to Menu
 	MealID      uint      `json:"meal_id" gorm:"not null"`                                         // Foreign key to Meal
 	Menu        Menu      `gorm:"foreignKey:MenuID;constraint:OnDelete:CASCADE;OnUpdate:CASCADE;"` // Reference to Menu
-	Meal        Meal      `gorm:"foreignKey:MealID;constraint:OnDelete:CASCADE;OnUpdate:CASCADE;"` // Reference to Meal
+	Meal        Meal      `gorm:"foreignKey:MealID;constraint:OnUpdate:CASCADE;"`                  // Reference to Meal
 }
