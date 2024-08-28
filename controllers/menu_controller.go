@@ -22,3 +22,16 @@ func PostMenu(c *gin.Context) {
 
 	c.JSON(http.StatusCreated, newMenu)
 }
+
+func UpdateMenu(c *gin.Context) {
+	var updatedMenu models.Menu
+	if err := c.BindJSON(&updatedMenu); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON"})
+		return
+	}
+	if err := config.DB.Updates(&updatedMenu).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update menu"})
+		return
+	}
+	c.JSON(http.StatusCreated, updatedMenu)
+}
