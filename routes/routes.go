@@ -15,4 +15,5 @@ func RegisterRoutes(router *gin.Engine) {
 
 	// Menus
 	router.POST("/menus", controllers.PostMenu)
+	router.PUT("/menus", controllers.UpdateMenu)
 }
