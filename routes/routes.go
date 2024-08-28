@@ -10,4 +10,5 @@ func RegisterRoutes(router *gin.Engine) {
 	router.GET("/meals", controllers.GetMeals)
 	router.GET("/meals/:id", controllers.GetMealByID)
 	router.POST("/meals", controllers.PostMeals)
+	router.POST("/menus", controllers.PostMenu)
 }
