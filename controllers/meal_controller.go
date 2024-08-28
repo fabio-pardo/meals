@@ -49,3 +49,19 @@ func PostMeals(c *gin.Context) {
 
 	c.JSON(http.StatusCreated, newMeal)
 }
+
+func DeleteMealByID(c *gin.Context) {
+	id := c.Param("id")
+	var meal models.Meal
+
+	deleted_meal := config.DB.Delete(&meal, id)
+	if deleted_meal.Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete meal"})
+		return
+	}
+	if deleted_meal.RowsAffected == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"message": "Could not find meal for deletion"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Meal successfully deleted"})
+}
