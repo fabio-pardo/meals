@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"meals/auth"
 	"meals/config"
 	"meals/routes"
 
@@ -9,13 +10,15 @@ import (
 	"github.com/joho/godotenv"
 )
 
-func init() {
+func main() {
+	// Load dotenv
 	if err := godotenv.Load(); err != nil {
 		log.Fatalf("Failed to load .env file")
 	}
-}
 
-func main() {
+	// Init OAuth2
+	auth.InitOAuth2()
+
 	// Initialize the database
 	config.InitDB()
 
