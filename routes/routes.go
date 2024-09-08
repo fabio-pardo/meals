@@ -7,6 +7,13 @@ import (
 )
 
 func RegisterRoutes(router *gin.Engine) {
+	// Home
+	router.GET("/", controllers.HomeHandler)
+
+	// Auth
+	router.GET("/auth/:provider", controllers.AuthHandler)
+	router.GET("/auth/:provider/callback", controllers.AuthCallback)
+
 	// Meals
 	router.GET("/meals", controllers.GetMeals)
 	router.GET("/meals/:id", controllers.GetMealByID)
