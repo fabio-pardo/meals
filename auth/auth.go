@@ -9,13 +9,6 @@ import (
 	"github.com/markbates/goth/providers/google"
 )
 
-var (
-	Store  = sessions.NewCookieStore([]byte(os.Getenv("SESSION_SECRET")))
-	key    = "randomString"
-	MaxAge = 86400 * 30
-	IsProd = false
-)
-
 func InitOAuth2() {
 	// Configure the OAuth2 provider
 	goth.UseProviders(
@@ -25,9 +18,5 @@ func InitOAuth2() {
 			os.Getenv("GOOGLE_REDIRECT_URL"),
 		),
 	)
-	Store.Options.MaxAge = MaxAge
-	Store.Options.HttpOnly = true
-	Store.Options.Secure = IsProd
-
-	gothic.Store = Store
+	gothic.Store = sessions.NewCookieStore([]byte(os.Getenv("SESSION_SECRET")))
 }
