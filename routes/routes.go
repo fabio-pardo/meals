@@ -13,6 +13,7 @@ func RegisterRoutes(router *gin.Engine) {
 	// Auth
 	router.GET("/auth/:provider", controllers.AuthHandler)
 	router.GET("/auth/:provider/callback", controllers.AuthCallback)
+	router.GET("/auth/logout/:provider", controllers.AuthLogout)
 
 	// Meals
 	router.GET("/meals", controllers.GetMeals)

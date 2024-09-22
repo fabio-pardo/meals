@@ -3,7 +3,6 @@ package controllers
 import (
 	"fmt"
 	"html/template"
-	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -11,7 +10,7 @@ import (
 )
 
 var userTemplate = `
-<p><a href="/logout/{{.Provider}}">logout</a></p>
+<p><a href="/auth/logout/{{.Provider}}">logout</a></p>
 <p>Name: {{.Name}} [{{.LastName}}, {{.FirstName}}]</p>
 <p>Email: {{.Email}}</p>
 <p>NickName: {{.NickName}}</p>
@@ -38,13 +37,18 @@ func AuthCallback(c *gin.Context) {
 	c.Request = setProviderInRequest(c.Request, c.Param("provider"))
 	user, err := gothic.CompleteUserAuth(c.Writer, c.Request)
 	if err != nil {
-		log.Printf("Failed to complete authentication: %s", err.Error())
-		c.Redirect(http.StatusTemporaryRedirect, "/")
+		fmt.Fprintln(c.Writer, err)
 		return
 	}
-	// Display user information
-	response := fmt.Sprintf("User Info: \nName: %s\nEmail: %s\n", user.Name, user.Email)
-	c.String(http.StatusOK, response)
+	t, _ := template.New("foo").Parse(userTemplate)
+	t.Execute(c.Writer, user)
+}
+
+func AuthLogout(c *gin.Context) {
+	c.Request = setProviderInRequest(c.Request, c.Param("provider"))
+	gothic.Logout(c.Writer, c.Request)
+	c.Writer.Header().Set("Location", "/")
+	c.Writer.WriteHeader(http.StatusTemporaryRedirect)
 }
 
 // Helper function to inject the provider into the request context
