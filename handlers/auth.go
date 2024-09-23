@@ -1,4 +1,4 @@
-package controllers
+package handlers
 
 import (
 	"fmt"
@@ -24,7 +24,7 @@ var userTemplate = `
 <p>RefreshToken: {{.RefreshToken}}</p>
 `
 
-func AuthHandler(c *gin.Context) {
+func GetAuthProviderHandler(c *gin.Context) {
 	c.Request = setProviderInRequest(c.Request, c.Param("provider"))
 	if gothUser, err := gothic.CompleteUserAuth(c.Writer, c.Request); err == nil {
 		t, _ := template.New("foo").Parse(userTemplate)
@@ -34,7 +34,7 @@ func AuthHandler(c *gin.Context) {
 	}
 }
 
-func AuthCallback(c *gin.Context) {
+func GetAuthCallbackHandler(c *gin.Context) {
 	c.Request = setProviderInRequest(c.Request, c.Param("provider"))
 	user, err := gothic.CompleteUserAuth(c.Writer, c.Request)
 	if err != nil {
