@@ -1,8 +1,8 @@
 package handlers
 
 import (
-	"meals/config"
 	"meals/models"
+	"meals/store"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -15,7 +15,7 @@ func CreateMenuHandler(c *gin.Context) {
 		return
 	}
 
-	if err := config.DB.Create(&newMenu).Error; err != nil {
+	if err := store.DB.Create(&newMenu).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create menu"})
 		return
 	}
@@ -29,7 +29,7 @@ func UpdateMenuHandler(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON"})
 		return
 	}
-	if err := config.DB.Updates(&updatedMenu).Error; err != nil {
+	if err := store.DB.Updates(&updatedMenu).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update menu"})
 		return
 	}
