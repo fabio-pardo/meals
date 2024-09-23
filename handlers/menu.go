@@ -1,4 +1,4 @@
-package controllers
+package handlers
 
 import (
 	"meals/config"
@@ -8,7 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func PostMenu(c *gin.Context) {
+func CreateMenuHandler(c *gin.Context) {
 	var newMenu models.Menu
 	if err := c.BindJSON(&newMenu); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON"})
@@ -23,7 +23,7 @@ func PostMenu(c *gin.Context) {
 	c.JSON(http.StatusCreated, newMenu)
 }
 
-func UpdateMenu(c *gin.Context) {
+func UpdateMenuHandler(c *gin.Context) {
 	var updatedMenu models.Menu
 	if err := c.BindJSON(&updatedMenu); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON"})

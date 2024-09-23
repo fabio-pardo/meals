@@ -1,26 +1,26 @@
 package routes
 
 import (
-	"meals/controllers"
+	"meals/handlers"
 
 	"github.com/gin-gonic/gin"
 )
 
 func RegisterRoutes(router *gin.Engine) {
 	// Home
-	router.GET("/", controllers.HomeHandler)
+	router.GET("/", handlers.HomeHandler)
 
 	// Auth
-	router.GET("/auth/:provider", controllers.AuthHandler)
-	router.GET("/auth/:provider/callback", controllers.AuthCallback)
+	router.GET("/auth/:provider", handlers.GetAuthProviderHandler)
+	router.GET("/auth/:provider/callback", handlers.GetAuthCallbackHandler)
 
 	// Meals
-	router.GET("/meals", controllers.GetMeals)
-	router.GET("/meals/:id", controllers.GetMealByID)
-	router.POST("/meals", controllers.PostMeals)
-	router.DELETE("/meals/:id", controllers.DeleteMealByID)
+	router.GET("/meals", handlers.GetMealsHandler)
+	router.GET("/meals/:id", handlers.GetMealHandler)
+	router.POST("/meals", handlers.CreateMealHandler)
+	router.DELETE("/meals/:id", handlers.DeleteMealHandler)
 
 	// Menus
-	router.POST("/menus", controllers.PostMenu)
-	router.PUT("/menus", controllers.UpdateMenu)
+	router.POST("/menus", handlers.CreateMenuHandler)
+	router.PUT("/menus", handlers.UpdateMenuHandler)
 }

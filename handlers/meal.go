@@ -1,4 +1,4 @@
-package controllers
+package handlers
 
 import (
 	"meals/config"
@@ -9,7 +9,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func GetMeals(c *gin.Context) {
+func GetMealsHandler(c *gin.Context) {
 	var meals []models.Meal
 	if err := config.DB.Find(&meals).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve meals"})
@@ -18,7 +18,7 @@ func GetMeals(c *gin.Context) {
 	c.JSON(http.StatusOK, meals)
 }
 
-func GetMealByID(c *gin.Context) {
+func GetMealHandler(c *gin.Context) {
 	id := c.Param("id")
 	var meal models.Meal
 
@@ -34,7 +34,7 @@ func GetMealByID(c *gin.Context) {
 	c.JSON(http.StatusOK, meal)
 }
 
-func PostMeals(c *gin.Context) {
+func CreateMealHandler(c *gin.Context) {
 	var newMeal models.Meal
 
 	if err := c.BindJSON(&newMeal); err != nil {
@@ -50,7 +50,7 @@ func PostMeals(c *gin.Context) {
 	c.JSON(http.StatusCreated, newMeal)
 }
 
-func DeleteMealByID(c *gin.Context) {
+func DeleteMealHandler(c *gin.Context) {
 	id := c.Param("id")
 	var meal models.Meal
 
