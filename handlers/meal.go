@@ -1,8 +1,8 @@
 package handlers
 
 import (
-	"meals/config"
 	"meals/models"
+	"meals/store"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -11,7 +11,7 @@ import (
 
 func GetMealsHandler(c *gin.Context) {
 	var meals []models.Meal
-	if err := config.DB.Find(&meals).Error; err != nil {
+	if err := store.DB.Find(&meals).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve meals"})
 		return
 	}
@@ -22,7 +22,7 @@ func GetMealHandler(c *gin.Context) {
 	id := c.Param("id")
 	var meal models.Meal
 
-	if err := config.DB.First(&meal, id).Error; err != nil {
+	if err := store.DB.First(&meal, id).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			c.JSON(http.StatusNotFound, gin.H{"message": "meal not found"})
 		} else {
@@ -42,7 +42,7 @@ func CreateMealHandler(c *gin.Context) {
 		return
 	}
 
-	if err := config.DB.Create(&newMeal).Error; err != nil {
+	if err := store.DB.Create(&newMeal).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create meal"})
 		return
 	}
@@ -54,7 +54,7 @@ func DeleteMealHandler(c *gin.Context) {
 	id := c.Param("id")
 	var meal models.Meal
 
-	deleted_meal := config.DB.Delete(&meal, id)
+	deleted_meal := store.DB.Delete(&meal, id)
 	if deleted_meal.Error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete meal"})
 		return

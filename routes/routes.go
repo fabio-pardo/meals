@@ -24,3 +24,9 @@ func RegisterRoutes(router *gin.Engine) {
 	router.POST("/menus", handlers.CreateMenuHandler)
 	router.PUT("/menus", handlers.UpdateMenuHandler)
 }
+
+func InitRouter() {
+	router := gin.Default()
+	RegisterRoutes(router)
+	router.Run("localhost:8080")
+}
