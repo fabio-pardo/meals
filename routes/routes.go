@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"meals/auth"
 	"meals/handlers"
 
 	"github.com/gin-gonic/gin"
@@ -8,7 +9,7 @@ import (
 
 func RegisterRoutes(router *gin.Engine) {
 	// Home
-	router.GET("/", handlers.HomeHandler)
+	router.GET("/", auth.RequireAuth(handlers.HomeHandler))
 
 	// Auth
 	router.GET("/auth/:provider", handlers.GetAuthProviderHandler)

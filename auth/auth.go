@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/gin-gonic/gin"
 	"github.com/gorilla/sessions"
 	"github.com/markbates/goth"
 	"github.com/markbates/goth/gothic"
@@ -50,17 +51,16 @@ func StoreUserSession(w http.ResponseWriter, r *http.Request, user goth.User) er
 	return nil
 }
 
-func RequireAuth(handlerFunc http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		session, err := GetSessionUser(r)
+func RequireAuth(handlerFunc gin.HandlerFunc) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		session, err := GetSessionUser(c.Request)
 		if err != nil {
 			log.Println("User is not authenticated!")
-			http.Redirect(w, r, "/login", http.StatusTemporaryRedirect)
 			return
 		}
 
 		log.Printf("user is authenticated! user: %v!", session.FirstName)
 
-		handlerFunc(w, r)
+		handlerFunc(c)
 	}
 }
