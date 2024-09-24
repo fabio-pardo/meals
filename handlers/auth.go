@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"html/template"
 	"log"
+	"meals/auth"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -27,6 +28,7 @@ var userTemplate = `
 func GetAuthProviderHandler(c *gin.Context) {
 	c.Request = setProviderInRequest(c.Request, c.Param("provider"))
 	if gothUser, err := gothic.CompleteUserAuth(c.Writer, c.Request); err == nil {
+		log.Printf("User already authenticated! %v", gothUser)
 		t, _ := template.New("foo").Parse(userTemplate)
 		t.Execute(c.Writer, gothUser)
 	} else {
@@ -42,6 +44,14 @@ func GetAuthCallbackHandler(c *gin.Context) {
 		c.Redirect(http.StatusTemporaryRedirect, "/")
 		return
 	}
+
+	err = auth.StoreUserSession(c.Writer, c.Request, user)
+	if err != nil {
+		log.Printf("Failed to store user session: %s", err.Error())
+		c.Redirect(http.StatusTemporaryRedirect, "/")
+		return
+	}
+
 	// Display user information
 	response := fmt.Sprintf("User Info: \nName: %s\nEmail: %s\n", user.Name, user.Email)
 	c.String(http.StatusOK, response)
