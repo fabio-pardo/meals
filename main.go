@@ -14,8 +14,8 @@ func main() {
 	// Init OAuth2
 	auth.InitOAuth2()
 
-	// Initialize the database
-	store.InitDB()
+	// Initialize the DBs (Postgres and Redis)
+	store.InitStores()
 
 	// Init App
 	routes.InitRouter()

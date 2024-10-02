@@ -4,6 +4,7 @@ go 1.22.5
 
 require (
 	github.com/gin-gonic/gin v1.10.0
+	github.com/go-redis/redis v6.15.9+incompatible
 	github.com/gorilla/sessions v1.1.1
 	github.com/joho/godotenv v1.5.1
 	github.com/markbates/goth v1.80.0
@@ -25,6 +26,7 @@ require (
 	github.com/go-playground/validator/v10 v10.22.0 // indirect
 	github.com/goccy/go-json v0.10.3 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
+	github.com/google/go-cmp v0.6.0 // indirect
 	github.com/gorilla/context v1.1.1 // indirect
 	github.com/gorilla/mux v1.6.2 // indirect
 	github.com/gorilla/securecookie v1.1.1 // indirect
@@ -41,6 +43,8 @@ require (
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
+	github.com/onsi/ginkgo v1.16.5 // indirect
+	github.com/onsi/gomega v1.34.2 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.2 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.2.12 // indirect
