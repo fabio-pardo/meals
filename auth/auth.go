@@ -53,13 +53,14 @@ func StoreUserSession(w http.ResponseWriter, r *http.Request, user goth.User) er
 
 func RequireAuth(handlerFunc gin.HandlerFunc) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		session, err := GetSessionUser(c.Request)
+		gUser, err := GetSessionUser(c.Request)
 		if err != nil {
 			log.Println("User is not authenticated!")
 			return
 		}
+		c.Set("user", gUser)
 
-		log.Printf("user is authenticated! user: %v!", session.FirstName)
+		log.Printf("user is authenticated! user: %v!", gUser.Email)
 
 		handlerFunc(c)
 	}
