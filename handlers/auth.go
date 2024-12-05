@@ -5,10 +5,13 @@ import (
 	"html/template"
 	"log"
 	"meals/auth"
+	"meals/models"
+	"meals/store"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/markbates/goth/gothic"
+	"gorm.io/gorm"
 )
 
 var userTemplate = `
@@ -45,6 +48,21 @@ func GetAuthCallbackHandler(c *gin.Context) {
 		return
 	}
 
+	// If new user, insert
+	user_id := user.UserID
+	stored_user := store.DB.First(&models.User{}, user_id)
+	if stored_user.Error != nil {
+		if err == gorm.ErrRecordNotFound {
+			store.DB.Create(&models.User{})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed connection to DB"})
+		}
+	} else {
+		// Update information
+		// access token, access token secret, refresh token, time of expiration.
+	}
+
+	// Store user in session cookies
 	err = auth.StoreUserSession(c.Writer, c.Request, user)
 	if err != nil {
 		log.Printf("Failed to store user session: %s", err.Error())
