@@ -3,6 +3,7 @@ package models
 import (
 	"time"
 
+	"github.com/markbates/goth"
 	"gorm.io/gorm"
 )
 
@@ -21,4 +22,17 @@ type User struct {
 	RefreshToken      string    `json:"refresh_token"`
 	ExpiresAt         time.Time `json:"expires_at" gorm:"not null"`
 	IDToken           string    `json:"id_token" gorm:"not null"`
+}
+
+func ConvertGothUserToModelUser(gothUser *goth.User) (*User, error) {
+	var user User
+	user.Provider = gothUser.Provider
+	user.UserID = gothUser.UserID
+	user.Name = gothUser.Name
+	user.Email = gothUser.Email
+	user.AccessToken = gothUser.AccessToken
+	user.AccessTokenSecret = gothUser.AccessTokenSecret
+	user.RefreshToken = gothUser.RefreshToken
+	user.ExpiresAt = gothUser.ExpiresAt
+	return &user, nil
 }

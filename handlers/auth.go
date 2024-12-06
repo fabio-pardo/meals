@@ -41,29 +41,38 @@ func GetAuthProviderHandler(c *gin.Context) {
 
 func GetAuthCallbackHandler(c *gin.Context) {
 	c.Request = setProviderInRequest(c.Request, c.Param("provider"))
-	user, err := gothic.CompleteUserAuth(c.Writer, c.Request)
+	gothUser, err := gothic.CompleteUserAuth(c.Writer, c.Request)
 	if err != nil {
 		log.Printf("Failed to complete authentication: %s", err.Error())
 		c.Redirect(http.StatusTemporaryRedirect, "/")
 		return
 	}
 
-	// If new user, insert
-	user_id := user.UserID
-	stored_user := store.DB.First(&models.User{}, user_id)
-	if stored_user.Error != nil {
-		if err == gorm.ErrRecordNotFound {
-			store.DB.Create(&models.User{})
+	var existingUser models.User
+	result := store.DB.Where("user_id = ?", gothUser.UserID).First(&existingUser)
+	if result.Error != nil {
+		if result.Error == gorm.ErrRecordNotFound {
+			newUser, _ := models.ConvertGothUserToModelUser(&gothUser)
+			store.DB.Create(newUser)
 		} else {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed connection to DB"})
+			return
 		}
 	} else {
-		// Update information
-		// access token, access token secret, refresh token, time of expiration.
+		existingUser.UserID = gothUser.UserID
+		existingUser.AccessToken = gothUser.AccessToken
+		existingUser.AccessTokenSecret = gothUser.AccessTokenSecret
+		existingUser.RefreshToken = gothUser.RefreshToken
+		existingUser.ExpiresAt = gothUser.ExpiresAt
+		// Save the changes to the database
+		if err := store.DB.Save(&existingUser).Error; err != nil {
+			log.Printf("Failed to update gothUser to pre-existing DB User %s", gothUser.UserID)
+			return
+		}
 	}
 
 	// Store user in session cookies
-	err = auth.StoreUserSession(c.Writer, c.Request, user)
+	err = auth.StoreUserSession(c.Writer, c.Request, gothUser)
 	if err != nil {
 		log.Printf("Failed to store user session: %s", err.Error())
 		c.Redirect(http.StatusTemporaryRedirect, "/")
@@ -71,7 +80,7 @@ func GetAuthCallbackHandler(c *gin.Context) {
 	}
 
 	// Display user information
-	response := fmt.Sprintf("User Info: \nName: %s\nEmail: %s\n", user.Name, user.Email)
+	response := fmt.Sprintf("User Info: \nName: %s\nEmail: %s\n", gothUser.Name, gothUser.Email)
 	c.String(http.StatusOK, response)
 }
 
