@@ -20,7 +20,7 @@ func InitDB() {
 
 	log.Println("Connected to PostgreSQL successfully")
 
-	if err := DB.AutoMigrate(&models.Meal{}, &models.Menu{}, &models.MenuMeal{}); err != nil {
+	if err := DB.AutoMigrate(&models.Meal{}, &models.Menu{}, &models.MenuMeal{}, &models.User{}); err != nil {
 		log.Fatalf("Failed to migrate the DB: %v", err)
 	}
 
