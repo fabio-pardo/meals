@@ -6,7 +6,7 @@ type Menu struct {
 	ID            uint       `json:"id" gorm:"primaryKey;autoIncrement;not null"`
 	WeekStartDate time.Time  `json:"week_start_date" gorm:"not null"`
 	WeekEndDate   time.Time  `json:"week_end_date" gorm:"not null"`
-	CreatedAt     time.Time  `gorm:"autoCreateTime;not null"`
-	UpdatedAt     time.Time  `gorm:"autoUpdateTime;not null"`
+	CreatedAt     time.Time  `json:"created_at" gorm:"autoCreateTime;not null"`
+	UpdatedAt     time.Time  `json:"updated_at" gorm:"autoUpdateTime;not null"`
 	MenuMeals     []MenuMeal `json:"menu_meals" gorm:"foreignKey:MenuID;constraint:OnUpdate:CASCADE;OnDelete:SET NULL;"`
 }

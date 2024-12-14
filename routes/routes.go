@@ -24,6 +24,7 @@ func RegisterRoutes(router *gin.Engine) {
 	// Menus
 	router.POST("/menus", handlers.CreateMenuHandler)
 	router.PUT("/menus", handlers.UpdateMenuHandler)
+	router.GET("/menus", handlers.GetMenuHandler)
 }
 
 func InitRouter() {

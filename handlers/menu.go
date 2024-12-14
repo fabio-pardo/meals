@@ -35,3 +35,13 @@ func UpdateMenuHandler(c *gin.Context) {
 	}
 	c.JSON(http.StatusCreated, updatedMenu)
 }
+
+func GetMenuHandler(c *gin.Context) {
+	var menus []models.Menu
+	if err := store.DB.Find(&menus).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve menus"})
+		return
+	}
+
+	c.JSON(http.StatusOK, menus)
+}
