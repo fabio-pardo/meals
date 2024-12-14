@@ -17,8 +17,9 @@ func RegisterRoutes(router *gin.Engine) {
 
 	// Meals
 	router.GET("/meals", handlers.GetMealsHandler)
-	router.GET("/meals/:id", handlers.GetMealHandler)
 	router.POST("/meals", handlers.CreateMealHandler)
+	router.GET("/meals/:id", handlers.GetMealHandler)
+	router.PUT("/meals/:id", handlers.UpdateMealHandler)
 	router.DELETE("/meals/:id", handlers.DeleteMealHandler)
 
 	// Menus

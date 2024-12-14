@@ -4,6 +4,7 @@ import (
 	"meals/models"
 	"meals/store"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -50,16 +51,34 @@ func CreateMealHandler(c *gin.Context) {
 	c.JSON(http.StatusCreated, newMeal)
 }
 
+func UpdateMealHandler(c *gin.Context) {
+	id, _ := strconv.ParseUint(c.Param("id"), 10, 64)
+	var updatedMeal models.Meal
+	updatedMeal.ID = uint(id)
+
+	if err := c.BindJSON(&updatedMeal); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON"})
+		return
+	}
+
+	if err := store.DB.Updates(&updatedMeal).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to store updated meal"})
+		return
+	}
+
+	c.JSON(http.StatusCreated, updatedMeal)
+}
+
 func DeleteMealHandler(c *gin.Context) {
 	id := c.Param("id")
 	var meal models.Meal
 
-	deleted_meal := store.DB.Delete(&meal, id)
-	if deleted_meal.Error != nil {
+	deletedMeal := store.DB.Delete(&meal, id)
+	if deletedMeal.Error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete meal"})
 		return
 	}
-	if deleted_meal.RowsAffected == 0 {
+	if deletedMeal.RowsAffected == 0 {
 		c.JSON(http.StatusNotFound, gin.H{"message": "Could not find meal for deletion"})
 		return
 	}
