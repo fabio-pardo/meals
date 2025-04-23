@@ -13,7 +13,7 @@ import (
 func GetMealsHandler(c *gin.Context) {
 	var meals []models.Meal
 	if err := store.DB.Find(&meals).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve meals"})
+		RespondWithError(c, DatabaseError("Failed to retrieve meals"))
 		return
 	}
 	c.JSON(http.StatusOK, meals)
@@ -25,9 +25,9 @@ func GetMealHandler(c *gin.Context) {
 
 	if err := store.DB.First(&meal, id).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			c.JSON(http.StatusNotFound, gin.H{"message": "meal not found"})
+			RespondWithError(c, NotFoundError("Meal"))
 		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve meal"})
+			RespondWithError(c, DatabaseError("Failed to retrieve meal"))
 		}
 		return
 	}
@@ -39,12 +39,12 @@ func CreateMealHandler(c *gin.Context) {
 	var newMeal models.Meal
 
 	if err := c.BindJSON(&newMeal); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON"})
+		RespondWithError(c, BadRequestError("Invalid or malformed meal data"))
 		return
 	}
 
 	if err := store.DB.Create(&newMeal).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create meal"})
+		RespondWithError(c, DatabaseError("Failed to create meal"))
 		return
 	}
 
@@ -52,21 +52,26 @@ func CreateMealHandler(c *gin.Context) {
 }
 
 func UpdateMealHandler(c *gin.Context) {
-	id, _ := strconv.ParseUint(c.Param("id"), 10, 64)
+	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		RespondWithError(c, BadRequestError("Invalid meal ID format"))
+		return
+	}
+	
 	var updatedMeal models.Meal
 	updatedMeal.ID = uint(id)
 
 	if err := c.BindJSON(&updatedMeal); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON"})
+		RespondWithError(c, BadRequestError("Invalid or malformed meal data"))
 		return
 	}
 
 	if err := store.DB.Updates(&updatedMeal).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to store updated meal"})
+		RespondWithError(c, DatabaseError("Failed to update meal"))
 		return
 	}
 
-	c.JSON(http.StatusCreated, updatedMeal)
+	c.JSON(http.StatusOK, updatedMeal)
 }
 
 func DeleteMealHandler(c *gin.Context) {
@@ -75,11 +80,11 @@ func DeleteMealHandler(c *gin.Context) {
 
 	deletedMeal := store.DB.Delete(&meal, id)
 	if deletedMeal.Error != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete meal"})
+		RespondWithError(c, DatabaseError("Failed to delete meal"))
 		return
 	}
 	if deletedMeal.RowsAffected == 0 {
-		c.JSON(http.StatusNotFound, gin.H{"message": "Could not find meal for deletion"})
+		RespondWithError(c, NotFoundError("Meal"))
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "Meal successfully deleted"})

@@ -52,10 +52,21 @@ func GetAuthCallbackHandler(c *gin.Context) {
 	result := store.DB.Where("user_id = ?", gothUser.UserID).First(&existingUser)
 	if result.Error != nil {
 		if result.Error == gorm.ErrRecordNotFound {
-			newUser, _ := models.ConvertGothUserToModelUser(&gothUser)
-			store.DB.Create(newUser)
+			newUser, err := models.ConvertGothUserToModelUser(&gothUser)
+			if err != nil {
+				RespondWithError(c, ErrorResponse{
+					Status:  http.StatusInternalServerError,
+					Code:    ErrInternalServer,
+					Message: "Failed to convert user data",
+				})
+				return
+			}
+			if err := store.DB.Create(newUser).Error; err != nil {
+				RespondWithError(c, DatabaseError("Failed to create user in database"))
+				return
+			}
 		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed connection to DB"})
+			RespondWithError(c, DatabaseError("Failed connection to DB"))
 			return
 		}
 	} else {
@@ -67,6 +78,7 @@ func GetAuthCallbackHandler(c *gin.Context) {
 		// Save the changes to the database
 		if err := store.DB.Save(&existingUser).Error; err != nil {
 			log.Printf("Failed to update gothUser to pre-existing DB User %s", gothUser.UserID)
+			RespondWithError(c, DatabaseError("Failed to update user credentials"))
 			return
 		}
 	}
@@ -75,7 +87,11 @@ func GetAuthCallbackHandler(c *gin.Context) {
 	err = auth.StoreUserSession(c.Writer, c.Request, gothUser)
 	if err != nil {
 		log.Printf("Failed to store user session: %s", err.Error())
-		c.Redirect(http.StatusTemporaryRedirect, "/")
+		RespondWithError(c, ErrorResponse{
+			Status:  http.StatusInternalServerError,
+			Code:    ErrInternalServer,
+			Message: "Failed to store user session",
+		})
 		return
 	}
 

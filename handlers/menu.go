@@ -11,12 +11,12 @@ import (
 func CreateMenuHandler(c *gin.Context) {
 	var newMenu models.Menu
 	if err := c.BindJSON(&newMenu); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON"})
+		RespondWithError(c, BadRequestError("Invalid or malformed menu data"))
 		return
 	}
 
 	if err := store.DB.Create(&newMenu).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create menu"})
+		RespondWithError(c, DatabaseError("Failed to create menu"))
 		return
 	}
 
@@ -26,12 +26,12 @@ func CreateMenuHandler(c *gin.Context) {
 func UpdateMenuHandler(c *gin.Context) {
 	var updatedMenu models.Menu
 	if err := c.BindJSON(&updatedMenu); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON"})
+		RespondWithError(c, BadRequestError("Invalid or malformed menu data"))
 		return
 	}
 	if err := store.DB.Updates(&updatedMenu).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update menu"})
+		RespondWithError(c, DatabaseError("Failed to update menu"))
 		return
 	}
-	c.JSON(http.StatusCreated, updatedMenu)
+	c.JSON(http.StatusOK, updatedMenu)
 }
