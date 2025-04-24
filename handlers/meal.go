@@ -43,8 +43,12 @@ func CreateMealHandler(c *gin.Context) {
 		return
 	}
 
-	if err := store.DB.Create(&newMeal).Error; err != nil {
-		RespondWithError(c, DatabaseError("Failed to create meal"))
+	// Use transaction to ensure data integrity
+	err := store.WithTransaction(c, func(tx *gorm.DB) error {
+		return tx.Create(&newMeal).Error
+	})
+
+	if HandleAppError(c, err) {
 		return
 	}
 
@@ -66,8 +70,22 @@ func UpdateMealHandler(c *gin.Context) {
 		return
 	}
 
-	if err := store.DB.Updates(&updatedMeal).Error; err != nil {
-		RespondWithError(c, DatabaseError("Failed to update meal"))
+	// Use transaction to ensure data integrity
+	err = store.WithTransaction(c, func(tx *gorm.DB) error {
+		// First check if meal exists
+		var existingMeal models.Meal
+		if result := tx.First(&existingMeal, id); result.Error != nil {
+			if result.Error == gorm.ErrRecordNotFound {
+				return NotFoundErrorType{Resource: "Meal"}
+			}
+			return result.Error
+		}
+		
+		// Then update it
+		return tx.Updates(&updatedMeal).Error
+	})
+
+	if HandleAppError(c, err) {
 		return
 	}
 
@@ -77,15 +95,38 @@ func UpdateMealHandler(c *gin.Context) {
 func DeleteMealHandler(c *gin.Context) {
 	id := c.Param("id")
 	var meal models.Meal
+	var rowsAffected int64
 
-	deletedMeal := store.DB.Delete(&meal, id)
-	if deletedMeal.Error != nil {
-		RespondWithError(c, DatabaseError("Failed to delete meal"))
+	// Use transaction to ensure data integrity
+	err := store.WithTransaction(c, func(tx *gorm.DB) error {
+		// Check for related records that might be affected
+		// (Assuming there's a MenuMeal relation, modify as needed)
+		var count int64
+		if err := tx.Model(&models.MenuMeal{}).Where("meal_id = ?", id).Count(&count).Error; err != nil {
+			return err
+		}
+
+		// You could implement your own business rules here
+		// For example, you might want to prevent deletion if the meal is part of a menu
+		// or cascade delete related records
+
+		result := tx.Delete(&meal, id)
+		if result.Error != nil {
+			return result.Error
+		}
+		
+		rowsAffected = result.RowsAffected
+		return nil
+	})
+
+	if HandleAppError(c, err) {
 		return
 	}
-	if deletedMeal.RowsAffected == 0 {
+	
+	if rowsAffected == 0 {
 		RespondWithError(c, NotFoundError("Meal"))
 		return
 	}
+	
 	c.JSON(http.StatusOK, gin.H{"message": "Meal successfully deleted"})
 }

@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 // ErrorResponse represents a standardized error response
@@ -24,6 +25,7 @@ const (
 	ErrValidation          = "VALIDATION_ERROR"
 	ErrDatabaseOperation   = "DATABASE_ERROR"
 	ErrResourceExists      = "RESOURCE_EXISTS"
+	ErrRelationship        = "RELATIONSHIP_ERROR"
 )
 
 // RespondWithError sends a standardized error response
@@ -76,4 +78,100 @@ func DatabaseError(message string) ErrorResponse {
 		Code:    ErrDatabaseOperation,
 		Message: message,
 	}
+}
+
+// RelationshipError returns a standardized relationship error for related entities
+func RelationshipError(message string, details any) ErrorResponse {
+	return ErrorResponse{
+		Status:  http.StatusBadRequest,
+		Code:    ErrRelationship,
+		Message: message,
+		Details: details,
+	}
+}
+
+// Custom error types for transaction-compatible errors
+
+// AppError is an interface for all application errors
+type AppError interface {
+	Error() string
+	ToResponse() ErrorResponse
+}
+
+// ValidationErrorType represents validation errors
+type ValidationErrorType struct {
+	Message string
+	Details any
+}
+
+func (e ValidationErrorType) Error() string {
+	return e.Message
+}
+
+func (e ValidationErrorType) ToResponse() ErrorResponse {
+	return ValidationError(e.Message, e.Details)
+}
+
+// NotFoundErrorType represents not found errors
+type NotFoundErrorType struct {
+	Resource string
+}
+
+func (e NotFoundErrorType) Error() string {
+	return e.Resource + " not found"
+}
+
+func (e NotFoundErrorType) ToResponse() ErrorResponse {
+	return NotFoundError(e.Resource)
+}
+
+// RelationshipErrorType represents relationship errors between entities
+type RelationshipErrorType struct {
+	Message string
+	Details any
+}
+
+func (e RelationshipErrorType) Error() string {
+	return e.Message
+}
+
+func (e RelationshipErrorType) ToResponse() ErrorResponse {
+	return RelationshipError(e.Message, e.Details)
+}
+
+// DatabaseErrorType represents database operation errors
+type DatabaseErrorType struct {
+	Message string
+	Details any
+}
+
+func (e DatabaseErrorType) Error() string {
+	return e.Message
+}
+
+func (e DatabaseErrorType) ToResponse() ErrorResponse {
+	return DatabaseError(e.Message)
+}
+
+// HandleAppError handles all application errors in a uniform way
+func HandleAppError(c *gin.Context, err error) bool {
+	if err == nil {
+		return false
+	}
+	
+	if appErr, ok := err.(AppError); ok {
+		// If it's an application error, convert to response
+		RespondWithError(c, appErr.ToResponse())
+		return true
+	}
+	
+	// Handle gorm specific errors
+	if err == gorm.ErrRecordNotFound {
+		RespondWithError(c, NotFoundError("Resource"))
+		return true
+	}
+	
+	// Default case
+	RespondWithError(c, DatabaseError(err.Error()))
+	return true
 }

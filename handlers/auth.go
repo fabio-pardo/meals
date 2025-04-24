@@ -1,8 +1,6 @@
 package handlers
 
 import (
-	"fmt"
-	"html/template"
 	"log"
 	"meals/auth"
 	"meals/models"
@@ -14,27 +12,16 @@ import (
 	"gorm.io/gorm"
 )
 
-var userTemplate = `
-<p><a href="/logout/{{.Provider}}">logout</a></p>
-<p>Name: {{.Name}} [{{.LastName}}, {{.FirstName}}]</p>
-<p>Email: {{.Email}}</p>
-<p>NickName: {{.NickName}}</p>
-<p>Location: {{.Location}}</p>
-<p>AvatarURL: {{.AvatarURL}} <img src="{{.AvatarURL}}"></p>
-<p>Description: {{.Description}}</p>
-<p>UserID: {{.UserID}}</p>
-<p>AccessToken: {{.AccessToken}}</p>
-<p>ExpiresAt: {{.ExpiresAt}}</p>
-<p>RefreshToken: {{.RefreshToken}}</p>
-`
+
 
 func GetAuthProviderHandler(c *gin.Context) {
 	c.Request = setProviderInRequest(c.Request, c.Param("provider"))
 	if gothUser, err := gothic.CompleteUserAuth(c.Writer, c.Request); err == nil {
 		log.Printf("User already authenticated! %v", gothUser)
-		t, _ := template.New("foo").Parse(userTemplate)
-		t.Execute(c.Writer, gothUser)
+		// Redirect already authenticated users to the home page
+		c.Redirect(http.StatusFound, "/")
 	} else {
+		// Begin the authentication process
 		gothic.BeginAuthHandler(c.Writer, c.Request)
 	}
 }
@@ -47,6 +34,9 @@ func GetAuthCallbackHandler(c *gin.Context) {
 		c.Redirect(http.StatusTemporaryRedirect, "/")
 		return
 	}
+	
+	// After successful authentication, log the attempt
+	log.Printf("Successfully authenticated user: %s (%s)", gothUser.Name, gothUser.Email)
 
 	var existingUser models.User
 	result := store.DB.Where("user_id = ?", gothUser.UserID).First(&existingUser)
@@ -95,9 +85,24 @@ func GetAuthCallbackHandler(c *gin.Context) {
 		return
 	}
 
-	// Display user information
-	response := fmt.Sprintf("User Info: \nName: %s\nEmail: %s\n", gothUser.Name, gothUser.Email)
-	c.String(http.StatusOK, response)
+	// Redirect to home page after successful authentication
+	c.Redirect(http.StatusFound, "/")
+}
+
+// LogoutHandler handles user logout by clearing the session
+func LogoutHandler(c *gin.Context) {
+	session, _ := gothic.Store.Get(c.Request, "session")
+	
+	// Remove user from session
+	delete(session.Values, "user")
+	
+	// Save session
+	if err := session.Save(c.Request, c.Writer); err != nil {
+		log.Printf("Error saving session during logout: %v", err)
+	}
+	
+	// Redirect to home page
+	c.Redirect(http.StatusFound, "/")
 }
 
 // Helper function to inject the provider into the request context

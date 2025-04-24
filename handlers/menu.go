@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 func CreateMenuHandler(c *gin.Context) {
@@ -15,8 +16,47 @@ func CreateMenuHandler(c *gin.Context) {
 		return
 	}
 
-	if err := store.DB.Create(&newMenu).Error; err != nil {
-		RespondWithError(c, DatabaseError("Failed to create menu"))
+	// Use transaction to ensure data integrity
+	err := store.WithTransaction(c, func(tx *gorm.DB) error {
+		// Create the menu
+		if err := tx.Create(&newMenu).Error; err != nil {
+			return err
+		}
+
+		// If menu has associated meals, validate and handle the relationships
+		if len(newMenu.MealIDs) > 0 {
+			// Verify all referenced meal IDs exist
+			var count int64
+			if err := tx.Model(&models.Meal{}).Where("id IN ?", newMenu.MealIDs).Count(&count).Error; err != nil {
+				return err
+			}
+
+			if int(count) != len(newMenu.MealIDs) {
+				return RelationshipErrorType{
+					Message: "One or more meal IDs do not exist",
+					Details: map[string]interface{}{
+						"provided_ids": newMenu.MealIDs,
+						"found_count": count,
+					},
+				}
+			}
+
+			// Create menu-meal associations
+			for _, mealID := range newMenu.MealIDs {
+				menuMeal := models.MenuMeal{
+					MenuID: newMenu.ID,
+					MealID: mealID,
+				}
+				if err := tx.Create(&menuMeal).Error; err != nil {
+					return err
+				}
+			}
+		}
+
+		return nil
+	})
+
+	if HandleAppError(c, err) {
 		return
 	}
 
@@ -29,9 +69,80 @@ func UpdateMenuHandler(c *gin.Context) {
 		RespondWithError(c, BadRequestError("Invalid or malformed menu data"))
 		return
 	}
-	if err := store.DB.Updates(&updatedMenu).Error; err != nil {
-		RespondWithError(c, DatabaseError("Failed to update menu"))
+
+	if updatedMenu.ID == 0 {
+		RespondWithError(c, BadRequestError("Menu ID is required"))
 		return
 	}
-	c.JSON(http.StatusOK, updatedMenu)
+
+	// Use transaction to ensure data integrity
+	err := store.WithTransaction(c, func(tx *gorm.DB) error {
+		// First check if menu exists
+		var existingMenu models.Menu
+		if result := tx.First(&existingMenu, updatedMenu.ID); result.Error != nil {
+			if result.Error == gorm.ErrRecordNotFound {
+				return NotFoundErrorType{Resource: "Menu"}
+			}
+			return result.Error
+		}
+
+		// Update the menu basic properties
+		if err := tx.Model(&updatedMenu).Updates(map[string]interface{}{
+			"name":        updatedMenu.Name,
+			"description": updatedMenu.Description,
+			// Add other fields as needed
+		}).Error; err != nil {
+			return err
+		}
+
+		// If meal associations have changed, update them
+		if len(updatedMenu.MealIDs) > 0 {
+			// Verify all referenced meal IDs exist
+			var count int64
+			if err := tx.Model(&models.Meal{}).Where("id IN ?", updatedMenu.MealIDs).Count(&count).Error; err != nil {
+				return err
+			}
+
+			if int(count) != len(updatedMenu.MealIDs) {
+				return RelationshipErrorType{
+					Message: "One or more meal IDs do not exist",
+					Details: map[string]interface{}{
+						"provided_ids": updatedMenu.MealIDs,
+						"found_count": count,
+					},
+				}
+			}
+
+			// Delete existing associations
+			if err := tx.Where("menu_id = ?", updatedMenu.ID).Delete(&models.MenuMeal{}).Error; err != nil {
+				return err
+			}
+
+			// Create new associations
+			for _, mealID := range updatedMenu.MealIDs {
+				menuMeal := models.MenuMeal{
+					MenuID: updatedMenu.ID,
+					MealID: mealID,
+				}
+				if err := tx.Create(&menuMeal).Error; err != nil {
+					return err
+				}
+			}
+		}
+
+		return nil
+	})
+
+	if HandleAppError(c, err) {
+		return
+	}
+
+	// Reload the menu to get the updated version
+	var refreshedMenu models.Menu
+	if err := store.DB.First(&refreshedMenu, updatedMenu.ID).Error; err != nil {
+		HandleAppError(c, DatabaseErrorType{Message: "Failed to retrieve updated menu"})
+		return
+	}
+
+	c.JSON(http.StatusOK, refreshedMenu)
 }
