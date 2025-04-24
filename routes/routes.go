@@ -2,9 +2,11 @@ package routes
 
 import (
 	"meals/auth"
+	"meals/config"
 	"meals/handlers"
 
 	"net/http"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -102,5 +104,8 @@ func RegisterRoutes(router *gin.Engine) {
 func InitRouter() {
 	router := gin.Default()
 	RegisterRoutes(router)
-	router.Run("localhost:8080")
+
+	// Use the server address from config
+	serverAddress := config.AppConfig.Server.GetServerAddress()
+	router.Run(serverAddress)
 }

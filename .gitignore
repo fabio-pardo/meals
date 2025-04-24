@@ -1,2 +1,32 @@
-.env
+# Binaries and build artifacts
+*.exe
+*.dll
+*.so
+*.dylib
+/bin/
+/tmp/
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+*.swo
 .DS_Store
+
+# Local development files
+*.env
+*.env.*
+!.env.example
+
+# Configuration files with sensitive information
+/config/config.development.yaml
+/config/config.test.yaml
+/config/config.production.yaml
+# Keep the template
+!/config/config.yaml
+
+# Dependency directories
+vendor/
+
+# Logs
+*.log

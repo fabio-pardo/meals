@@ -1,10 +1,9 @@
 package store
 
 import (
-	"fmt"
 	"log"
+	"meals/config"
 	"meals/models"
-	"os"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -13,38 +12,11 @@ import (
 var DB *gorm.DB
 
 func InitDB() {
-	host := os.Getenv("DB_HOST")
-	if host == "" {
-		host = "localhost"
-	}
+	// Use the configuration from the config package
+	dbConfig := config.AppConfig.Database
 
-	user := os.Getenv("DB_USER")
-	if user == "" {
-		user = "test"
-	}
-
-	password := os.Getenv("DB_PASSWORD")
-	if password == "" {
-		password = "test"
-	}
-
-	dbname := os.Getenv("DB_NAME")
-	if dbname == "" {
-		dbname = "test"
-	}
-
-	port := os.Getenv("DB_PORT")
-	if port == "" {
-		port = "5432"
-	}
-
-	sslmode := os.Getenv("DB_SSLMODE")
-	if sslmode == "" {
-		sslmode = "disable"
-	}
-
-	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=%s",
-		host, user, password, dbname, port, sslmode)
+	// Get the DSN from our config
+	dsn := dbConfig.GetDSN()
 
 	var err error
 	DB, err = gorm.Open(postgres.Open(dsn), &gorm.Config{})

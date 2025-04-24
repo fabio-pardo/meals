@@ -3,8 +3,8 @@ package auth
 import (
 	"fmt"
 	"log"
+	"meals/config"
 	"net/http"
-	"os"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/sessions"
@@ -14,15 +14,18 @@ import (
 )
 
 func InitOAuth2() {
+	// Use the configuration from the config package
+	authConfig := config.AppConfig.Auth
+
 	// Configure the OAuth2 provider
 	goth.UseProviders(
 		google.New(
-			os.Getenv("GOOGLE_KEY"),
-			os.Getenv("GOOGLE_SECRET"),
-			os.Getenv("GOOGLE_REDIRECT_URL"),
+			authConfig.GoogleKey,
+			authConfig.GoogleSecret,
+			authConfig.GoogleRedirectURL,
 		),
 	)
-	gothic.Store = sessions.NewCookieStore([]byte(os.Getenv("SESSION_SECRET")))
+	gothic.Store = sessions.NewCookieStore([]byte(authConfig.SessionSecret))
 }
 
 func GetSessionUser(r *http.Request) (goth.User, error) {
@@ -36,12 +39,12 @@ func GetSessionUser(r *http.Request) (goth.User, error) {
 	if u == nil {
 		return goth.User{}, fmt.Errorf("user is not authenticated! %v", u)
 	}
-	
+
 	user, ok := u.(goth.User)
 	if !ok {
 		return goth.User{}, fmt.Errorf("invalid user type in session")
 	}
-	
+
 	return user, nil
 }
 

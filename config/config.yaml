@@ -1,0 +1,26 @@
+# Sample configuration file for Meals App
+server:
+  port: 8080
+  host: localhost
+  readTimeout: 10s
+  writeTimeout: 10s
+  environment: development # Options: development, test, production
+
+database:
+  host: localhost
+  port: 5432
+  user: postgres
+  password: postgres_password
+  name: meals_db
+  sslmode: disable
+
+redis:
+  address: localhost:6379
+  password: ""
+  db: 0
+
+auth:
+  googleKey: "your-google-client-id"
+  googleSecret: "your-google-client-secret"
+  googleRedirectURL: "http://localhost:8080/auth/google/callback"
+  sessionSecret: "your-session-secret-key" 

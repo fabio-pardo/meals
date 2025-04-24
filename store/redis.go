@@ -2,7 +2,7 @@ package store
 
 import (
 	"log"
-	"os"
+	"meals/config"
 
 	"github.com/go-redis/redis"
 )
@@ -10,10 +10,13 @@ import (
 var RedisClient *redis.Client
 
 func InitRedis() {
+	// Use the configuration from the config package
+	redisConfig := config.AppConfig.Redis
+
 	RedisClient = redis.NewClient(&redis.Options{
-		Addr:     os.Getenv("REDIS_ADDR"),
-		Password: os.Getenv("REDIS_PASSWORD"),
-		DB:       0,
+		Addr:     redisConfig.Address,
+		Password: redisConfig.Password,
+		DB:       redisConfig.DB,
 	})
 
 	_, err := RedisClient.Ping().Result()

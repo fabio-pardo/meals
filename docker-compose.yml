@@ -1,22 +1,63 @@
+version: '3.8'
+
 services:
-  db:
-    image: postgres:latest
-    container_name: postgres
-    environment:
-      POSTGRES_USER: test
-      POSTGRES_PASSWORD: test
-      POSTGRES_DB: test
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: meals-app
+    restart: unless-stopped
     ports:
-      - "5432:5432"
+      - "${SERVER_PORT:-8080}:8080"
+    environment:
+      - APP_ENV=${APP_ENV:-development}
+      - SERVER_HOST=0.0.0.0
+      - DATABASE_HOST=db
+      - DATABASE_PORT=5432
+      - DATABASE_USER=${DATABASE_USER:-postgres}
+      - DATABASE_PASSWORD=${DATABASE_PASSWORD:-postgres}
+      - DATABASE_NAME=${DATABASE_NAME:-meals_db}
+      - REDIS_ADDRESS=redis:6379
+      - AUTH_GOOGLEKEY=${AUTH_GOOGLEKEY:-your-google-client-id}
+      - AUTH_GOOGLESECRET=${AUTH_GOOGLESECRET:-your-google-client-secret}
+      - AUTH_GOOGLEREDIRECTURL=${AUTH_GOOGLEREDIRECTURL:-http://localhost:8080/auth/google/callback}
+      - AUTH_SESSIONSECRET=${AUTH_SESSIONSECRET:-your-session-secret-key}
+    depends_on:
+      - db
+      - redis
+    volumes:
+      - ./config:/app/config
+
+  db:
+    image: postgres:15-alpine
+    container_name: meals-db
+    environment:
+      POSTGRES_USER: ${DATABASE_USER:-postgres}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:-postgres}
+      POSTGRES_DB: ${DATABASE_NAME:-meals_db}
+    ports:
+      - "${DATABASE_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DATABASE_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   redis:
-    image: redis:latest
-    container_name: redis
+    image: redis:7-alpine
+    container_name: meals-redis
     ports:
-      - "6379:6379"
+      - "${REDIS_PORT:-6379}:6379"
     volumes:
-      - redis_data:/var/lib/redis/data
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 volumes:
   postgres_data:
