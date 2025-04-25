@@ -4,6 +4,7 @@ import (
 	"meals/auth"
 	"meals/config"
 	"meals/handlers"
+	"meals/middleware"
 
 	"net/http"
 
@@ -102,7 +103,14 @@ func RegisterRoutes(router *gin.Engine) {
 }
 
 func InitRouter() {
-	router := gin.Default()
+	// Initialize the router without default middleware
+	router := gin.New()
+
+	// Use our custom middlewares
+	router.Use(middleware.RequestID()) // Add request ID to each request
+	router.Use(middleware.Logger())    // Log requests with request IDs
+	router.Use(middleware.Recovery())  // Recover from panics with request ID tracking
+
 	RegisterRoutes(router)
 
 	// Use the server address from config

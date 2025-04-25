@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"meals/middleware"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -9,23 +10,24 @@ import (
 
 // ErrorResponse represents a standardized error response
 type ErrorResponse struct {
-	Status  int    `json:"-"`
-	Code    string `json:"code,omitempty"`
-	Message string `json:"message"`
-	Details any    `json:"details,omitempty"`
+	Status    int    `json:"-"`
+	Code      string `json:"code,omitempty"`
+	Message   string `json:"message"`
+	Details   any    `json:"details,omitempty"`
+	RequestID string `json:"request_id,omitempty"`
 }
 
 // Common error codes
 const (
-	ErrBadRequest          = "BAD_REQUEST"
-	ErrNotFound            = "NOT_FOUND"
-	ErrInternalServer      = "INTERNAL_SERVER_ERROR"
-	ErrUnauthorized        = "UNAUTHORIZED"
-	ErrForbidden           = "FORBIDDEN"
-	ErrValidation          = "VALIDATION_ERROR"
-	ErrDatabaseOperation   = "DATABASE_ERROR"
-	ErrResourceExists      = "RESOURCE_EXISTS"
-	ErrRelationship        = "RELATIONSHIP_ERROR"
+	ErrBadRequest        = "BAD_REQUEST"
+	ErrNotFound          = "NOT_FOUND"
+	ErrInternalServer    = "INTERNAL_SERVER_ERROR"
+	ErrUnauthorized      = "UNAUTHORIZED"
+	ErrForbidden         = "FORBIDDEN"
+	ErrValidation        = "VALIDATION_ERROR"
+	ErrDatabaseOperation = "DATABASE_ERROR"
+	ErrResourceExists    = "RESOURCE_EXISTS"
+	ErrRelationship      = "RELATIONSHIP_ERROR"
 )
 
 // RespondWithError sends a standardized error response
@@ -33,12 +35,17 @@ func RespondWithError(c *gin.Context, err ErrorResponse) {
 	if err.Status == 0 {
 		err.Status = http.StatusInternalServerError
 	}
-	
+
+	// Get request ID from context and add it to the response
+	requestID := middleware.GetRequestID(c)
+	err.RequestID = requestID
+
 	c.JSON(err.Status, gin.H{
 		"error": gin.H{
-			"code":    err.Code,
-			"message": err.Message,
-			"details": err.Details,
+			"code":       err.Code,
+			"message":    err.Message,
+			"details":    err.Details,
+			"request_id": requestID,
 		},
 	})
 }
@@ -158,19 +165,19 @@ func HandleAppError(c *gin.Context, err error) bool {
 	if err == nil {
 		return false
 	}
-	
+
 	if appErr, ok := err.(AppError); ok {
 		// If it's an application error, convert to response
 		RespondWithError(c, appErr.ToResponse())
 		return true
 	}
-	
+
 	// Handle gorm specific errors
 	if err == gorm.ErrRecordNotFound {
 		RespondWithError(c, NotFoundError("Resource"))
 		return true
 	}
-	
+
 	// Default case
 	RespondWithError(c, DatabaseError(err.Error()))
 	return true
