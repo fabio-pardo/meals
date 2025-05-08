@@ -38,7 +38,6 @@ func RespondWithError(c *gin.Context, err ErrorResponse) {
 
 	// Get request ID from context and add it to the response
 	requestID := middleware.GetRequestID(c)
-	err.RequestID = requestID
 
 	c.JSON(err.Status, gin.H{
 		"error": gin.H{
