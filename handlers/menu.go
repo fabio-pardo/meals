@@ -146,3 +146,23 @@ func UpdateMenuHandler(c *gin.Context) {
 
 	c.JSON(http.StatusOK, refreshedMenu)
 }
+
+// GetMenusHandler retrieves all menus with their associated meals
+func GetMenusHandler(c *gin.Context) {
+	var menus []models.Menu
+	
+	// Use transaction to ensure data consistency
+	err := store.WithTransaction(c, func(tx *gorm.DB) error {
+		// Get all menus with their menu-meal associations and the associated meals
+		if err := tx.Preload("MenuMeals.Meal").Find(&menus).Error; err != nil {
+			return err
+		}
+		return nil
+	})
+
+	if HandleAppError(c, err) {
+		return
+	}
+
+	c.JSON(http.StatusOK, menus)
+}
