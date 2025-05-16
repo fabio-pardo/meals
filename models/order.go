@@ -25,7 +25,7 @@ type Order struct {
 	UpdatedAt       time.Time      `json:"updated_at" gorm:"autoUpdateTime;not null"`
 	DeletedAt       gorm.DeletedAt `json:"deleted_at" gorm:"index"`
 	UserID          uint           `json:"user_id" gorm:"not null"`
-	User            User           `json:"user" gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE;OnUpdate:CASCADE;"`
+	User            User           `json:"user" gorm:"foreignKey:UserID;references:ID"`
 	OrderItems      []OrderItem    `json:"order_items" gorm:"foreignKey:OrderID;constraint:OnDelete:CASCADE;OnUpdate:CASCADE;"`
 	Status          OrderStatus    `json:"status" gorm:"type:varchar(20);not null;default:'pending'"`
 	TotalAmount     float64        `json:"total_amount" gorm:"not null"`

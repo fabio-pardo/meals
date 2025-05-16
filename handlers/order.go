@@ -349,6 +349,11 @@ func createOrderItem(tx *gorm.DB, itemData CreateOrderItemData, order *models.Or
 		Notes:    itemData.Notes,
 	}
 
+	// Set the order ID if the order already has an ID
+	if order.ID > 0 {
+		orderItem.OrderID = order.ID
+	}
+
 	// Fetch and validate the referenced item based on type
 	if itemData.ItemType == models.OrderItemTypeMeal {
 		var meal models.Meal

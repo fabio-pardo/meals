@@ -5,6 +5,7 @@ import (
 	"meals/config"
 	"meals/handlers"
 	"meals/middleware"
+	"meals/models"
 
 	"net/http"
 
@@ -103,15 +104,54 @@ func RegisterRoutes(router *gin.Engine) {
 	router.POST("/menus", handlers.CreateMenuHandler)
 	router.PUT("/menus", handlers.UpdateMenuHandler)
 
-	// Orders - all routes protected with authentication
+	// Orders - all routes protected with role-based authentication
 	ordersGroup := router.Group("/orders")
-	ordersGroup.Use(auth.RequireAuth())
 	{
-		ordersGroup.POST("", handlers.CreateOrderHandler)
-		ordersGroup.GET("", handlers.ListOrdersHandler)
-		ordersGroup.GET("/:id", handlers.GetOrderHandler)
-		ordersGroup.PUT("/:id/status", handlers.UpdateOrderStatusHandler)
-		ordersGroup.POST("/:id/cancel", handlers.CancelOrderHandler)
+		// Customer & Admin can create orders
+		customerAdminRoutes := ordersGroup.Group("/")
+		customerAdminRoutes.Use(auth.RequireRole(models.UserTypeCustomer, models.UserTypeAdmin))
+		customerAdminRoutes.POST("", handlers.CreateOrderHandler)
+		customerAdminRoutes.POST("/:id/cancel", handlers.CancelOrderHandler)
+
+		// Any authenticated user can view orders (will be filtered by user ID in handler)
+		authenticatedRoutes := ordersGroup.Group("/")
+		authenticatedRoutes.Use(auth.RequireRole())
+		authenticatedRoutes.GET("", handlers.ListOrdersHandler)
+		authenticatedRoutes.GET("/:id", handlers.GetOrderHandler)
+		authenticatedRoutes.PUT("/:id/status", handlers.UpdateOrderStatusHandler)
+	}
+
+	// User Profiles
+	profilesGroup := router.Group("/profile")
+	{
+		// All users can manage their own profile
+		authenticatedProfileRoutes := profilesGroup.Group("/")
+		authenticatedProfileRoutes.Use(auth.RequireRole())
+		authenticatedProfileRoutes.GET("", handlers.GetUserProfileHandler)
+		authenticatedProfileRoutes.PUT("", handlers.CreateOrUpdateProfileHandler)
+
+		// Driver-specific profile management
+		driverAdminRoutes := profilesGroup.Group("/")
+		driverAdminRoutes.Use(auth.RequireRole(models.UserTypeDriver, models.UserTypeAdmin))
+		driverAdminRoutes.PUT("/driver", handlers.SetDriverProfileHandler)
+	}
+
+	// Addresses
+	addressesGroup := router.Group("/addresses")
+	addressesGroup.Use(auth.RequireRole()) // All address routes require authentication
+	{
+		addressesGroup.GET("", handlers.ListAddressesHandler)
+		addressesGroup.POST("", handlers.CreateAddressHandler)
+		addressesGroup.GET("/:id", handlers.GetAddressHandler)
+		addressesGroup.PUT("/:id", handlers.UpdateAddressHandler)
+		addressesGroup.DELETE("/:id", handlers.DeleteAddressHandler)
+	}
+
+	// Admin-only routes
+	adminGroup := router.Group("/admin")
+	adminGroup.Use(auth.RequireAdmin())
+	{
+		// Future admin routes will go here
 	}
 }
 
