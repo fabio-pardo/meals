@@ -72,6 +72,7 @@ func RegisterRoutes(router *gin.Engine) {
 						<li>Create and manage your meal list</li>
 						<li>Plan weekly menus</li>
 						<li>Organize your favorite recipes</li>
+						<li>Place orders for meal delivery</li>
 					</ul>
 					<p>To get started, please sign in:</p>
 					<a href="/auth/google" class="login-btn">Login with Google</a>
@@ -101,6 +102,17 @@ func RegisterRoutes(router *gin.Engine) {
 	router.GET("/menus", handlers.GetMenusHandler)
 	router.POST("/menus", handlers.CreateMenuHandler)
 	router.PUT("/menus", handlers.UpdateMenuHandler)
+
+	// Orders - all routes protected with authentication
+	ordersGroup := router.Group("/orders")
+	ordersGroup.Use(auth.RequireAuth())
+	{
+		ordersGroup.POST("", handlers.CreateOrderHandler)
+		ordersGroup.GET("", handlers.ListOrdersHandler)
+		ordersGroup.GET("/:id", handlers.GetOrderHandler)
+		ordersGroup.PUT("/:id/status", handlers.UpdateOrderStatusHandler)
+		ordersGroup.POST("/:id/cancel", handlers.CancelOrderHandler)
+	}
 }
 
 func InitRouter() {
