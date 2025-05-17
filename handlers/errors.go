@@ -17,6 +17,11 @@ type ErrorResponse struct {
 	RequestID string `json:"request_id,omitempty"`
 }
 
+// Error implements error.
+func (e ErrorResponse) Error() string {
+	panic("unimplemented")
+}
+
 // Common error codes
 const (
 	ErrBadRequest        = "BAD_REQUEST"
@@ -157,6 +162,36 @@ func (e DatabaseErrorType) Error() string {
 
 func (e DatabaseErrorType) ToResponse() ErrorResponse {
 	return DatabaseError(e.Message)
+}
+
+// UnauthorizedErrorType represents unauthorized access errors
+type UnauthorizedErrorType struct {
+	Message string
+}
+
+func (e UnauthorizedErrorType) Error() string {
+	return e.Message
+}
+
+func (e UnauthorizedErrorType) ToResponse() ErrorResponse {
+	return ErrorResponse{
+		Status:  http.StatusUnauthorized,
+		Code:    ErrUnauthorized,
+		Message: e.Message,
+	}
+}
+
+// BadRequestErrorType represents bad request errors
+type BadRequestErrorType struct {
+	Message string
+}
+
+func (e BadRequestErrorType) Error() string {
+	return e.Message
+}
+
+func (e BadRequestErrorType) ToResponse() ErrorResponse {
+	return BadRequestError(e.Message)
 }
 
 // HandleAppError handles all application errors in a uniform way

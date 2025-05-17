@@ -8,16 +8,23 @@ import (
 	"gorm.io/gorm"
 )
 
-// TxFn represents a function that uses a transaction
-type TxFn func(tx *gorm.DB) error
+// TxHandle is an alias for *gorm.DB to be used in transactions
+type TxHandle = *gorm.DB
 
-// WithTransaction executes a function within a database transaction.
+// TxFn represents a function that uses a transaction
+type TxFn func(tx TxHandle) error
+
+// TxFnWithResult represents a function that uses a transaction and returns a result
+type TxFnWithResult func(tx TxHandle) (interface{}, error)
+
+// WithTransactionResult executes a function within a database transaction.
 // If the function returns an error, the transaction is rolled back.
 // Otherwise, the transaction is committed.
-func WithTransaction(c *gin.Context, fn TxFn) error {
-	tx := DB.Begin()
+// This version supports returning a result along with an error.
+func WithTransactionResult(c *gin.Context, db *gorm.DB, fn TxFnWithResult) (interface{}, error) {
+	tx := db.Begin()
 	if tx.Error != nil {
-		return fmt.Errorf("failed to begin transaction: %w", tx.Error)
+		return nil, fmt.Errorf("failed to begin transaction: %w", tx.Error)
 	}
 
 	// Set transaction in context so it can be accessed by other functions
@@ -34,20 +41,41 @@ func WithTransaction(c *gin.Context, fn TxFn) error {
 		}
 	}()
 
-	if err := fn(tx); err != nil {
+	result, err := fn(tx)
+	if err != nil {
 		tx.Rollback()
-		return err
+		return nil, err
 	}
 
 	if err := tx.Commit().Error; err != nil {
-		return fmt.Errorf("failed to commit transaction: %w", err)
+		return nil, fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
-	return nil
+	return result, nil
+}
+
+// WithTransactionNoResult is a compatibility wrapper for the original WithTransaction function
+// that doesn't return a result.
+func WithTransactionNoResult(c *gin.Context, db *gorm.DB, fn TxFn) error {
+	_, err := WithTransactionResult(c, db, func(tx TxHandle) (interface{}, error) {
+		return nil, fn(tx)
+	})
+	return err
+}
+
+// Legacy compatibility function to match existing application code
+// This allows tests to be updated without breaking the application
+func WithTransaction(c *gin.Context, fn TxFn) error {
+	return WithTransactionNoResult(c, DB, fn)
+}
+
+// TxWithResult is another name for WithTransactionResult with result to avoid naming conflict
+func TxWithResult(c *gin.Context, db *gorm.DB, fn TxFnWithResult) (interface{}, error) {
+	return WithTransactionResult(c, db, fn)
 }
 
 // GetTxFromContext extracts the transaction from the context if it exists
-// Otherwise returns the global DB instance
+// Otherwise returns the provided DB instance or global DB if nil
 func GetTxFromContext(c *gin.Context) *gorm.DB {
 	if c == nil {
 		return DB

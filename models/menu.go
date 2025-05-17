@@ -10,6 +10,6 @@ type Menu struct {
 	WeekEndDate   time.Time  `json:"week_end_date" gorm:"not null"`
 	CreatedAt     time.Time  `gorm:"autoCreateTime;not null"`
 	UpdatedAt     time.Time  `gorm:"autoUpdateTime;not null"`
-	MenuMeals     []MenuMeal `json:"menu_meals" gorm:"foreignKey:MenuID;constraint:OnUpdate:CASCADE;OnDelete:SET NULL;"`
+	MenuMeals     []MenuMeal `json:"menu_meals" gorm:"foreignKey:MenuID;constraint:OnDelete:CASCADE;OnUpdate:CASCADE;"`
 	MealIDs       []uint     `json:"meal_ids" gorm:"-"` // Used for handling many-to-many relationships, not stored in DB
 }

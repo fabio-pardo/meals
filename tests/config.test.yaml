@@ -1,0 +1,19 @@
+app:
+  name: Meals App Test
+  environment: test
+  port: 8080
+
+database:
+  driver: postgres
+  host: localhost
+  port: 5432
+  username: postgres
+  password: postgres
+  dbname: meals_test
+  sslmode: disable
+
+auth:
+  session_key: test_session_key_for_testing_only
+  google_client_id: test_google_client_id
+  google_client_secret: test_google_client_secret
+  redirect_url: http://localhost:8080/auth/callback

@@ -1,8 +1,8 @@
 package models
 
 import (
+	"encoding/json"
 	"time"
-
 	"gorm.io/gorm"
 )
 
@@ -25,6 +25,34 @@ type UserProfile struct {
 	// Customer preferences
 	DietaryPreferences []string `json:"dietary_preferences" gorm:"-"` // Stored as JSON in PreferencesJSON
 	PreferencesJSON    string   `json:"preferences_json" gorm:"type:text"`
+}
+
+// BeforeSave is a GORM hook that runs before saving the UserProfile
+func (up *UserProfile) BeforeSave(tx *gorm.DB) error {
+	// Convert DietaryPreferences to JSON and store in PreferencesJSON
+	if up.DietaryPreferences != nil {
+		jsonData, err := json.Marshal(up.DietaryPreferences)
+		if err != nil {
+			return err
+		}
+		up.PreferencesJSON = string(jsonData)
+	} else {
+		up.PreferencesJSON = "[]"
+	}
+	return nil
+}
+
+// AfterFind is a GORM hook that runs after finding a UserProfile
+func (up *UserProfile) AfterFind(tx *gorm.DB) error {
+	// Convert PreferencesJSON back to DietaryPreferences
+	if up.PreferencesJSON != "" {
+		var prefs []string
+		if err := json.Unmarshal([]byte(up.PreferencesJSON), &prefs); err != nil {
+			return err
+		}
+		up.DietaryPreferences = prefs
+	}
+	return nil
 }
 
 // Address represents a delivery address associated with a user
