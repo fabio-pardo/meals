@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"meals/handlers"
 	"meals/models"
-	"meals/routes"
 	"meals/tests"
 	"net/http"
 	"net/http/httptest"
@@ -15,24 +14,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 )
-
-func setupRouter(t *testing.T, db *models.Database) *gin.Engine {
-	// Create a test router with the necessary middleware
-	gin.SetMode(gin.TestMode)
-	r := gin.New()
-	r.Use(gin.Recovery())
-
-	// Add DB to context middleware
-	r.Use(func(c *gin.Context) {
-		c.Set("db", db)
-		c.Next()
-	})
-
-	// Set up routes
-	routes.SetupRoutes(r)
-
-	return r
-}
 
 // Helper to authenticate a user in the test context
 func authenticateUser(c *gin.Context, user models.User) {
@@ -44,9 +25,6 @@ func TestUserProfileEndpoints(t *testing.T) {
 
 	t.Run("GetUserProfile_Success", func(t *testing.T) {
 		tests.SetupTest(t, db)
-
-		// Create router
-		r := setupRouter(t, &models.Database{DB: db})
 
 		// Create a test user and profile
 		user := tests.CreateTestUser(db, models.UserTypeCustomer)
@@ -60,8 +38,10 @@ func TestUserProfileEndpoints(t *testing.T) {
 		w := httptest.NewRecorder()
 		req, _ := http.NewRequest("GET", "/api/profiles/me", nil)
 
-		// Add user authentication to context
-		c := &gin.Context{Request: req, Writer: w}
+		// Create context using Gin's test utilities
+		c, _ := gin.CreateTestContext(w)
+		c.Request = req
+
 		authenticateUser(c, user)
 		c.Set("db", &models.Database{DB: db})
 
@@ -73,7 +53,7 @@ func TestUserProfileEndpoints(t *testing.T) {
 
 			result := db.Where("user_id = ?", userID).Preload("Addresses").First(&userProfile)
 			if result.Error != nil {
-				handlers.NotFoundError("User profile not found").ToResponse(c)
+				handlers.RespondWithError(c, handlers.NotFoundError("User profile not found"))
 				return
 			}
 
@@ -98,12 +78,8 @@ func TestUserProfileEndpoints(t *testing.T) {
 	t.Run("UpdateUserProfile_Success", func(t *testing.T) {
 		tests.SetupTest(t, db)
 
-		// Create router
-		r := setupRouter(t, &models.Database{DB: db})
-
 		// Create a test user and profile
 		user := tests.CreateTestUser(db, models.UserTypeCustomer)
-		profile := tests.CreateTestProfile(db, user.ID)
 
 		// Prepare update data
 		updateData := map[string]interface{}{
@@ -119,7 +95,9 @@ func TestUserProfileEndpoints(t *testing.T) {
 		req.Header.Set("Content-Type", "application/json")
 
 		// Add user authentication to context
-		c := &gin.Context{Request: req, Writer: w}
+		c, _ := gin.CreateTestContext(w)
+		c.Request = req
+
 		authenticateUser(c, user)
 		c.Set("db", &models.Database{DB: db})
 
@@ -128,12 +106,12 @@ func TestUserProfileEndpoints(t *testing.T) {
 			// Mock the handler logic
 			userID := user.ID
 			var updateRequest struct {
-				PhoneNumber        string `json:"phone_number"`
-				DietaryPreferences string `json:"dietary_preferences"`
+				PhoneNumber        string   `json:"phone_number"`
+				DietaryPreferences []string `json:"dietary_preferences"`
 			}
 
 			if err := c.ShouldBindJSON(&updateRequest); err != nil {
-				handlers.ValidationError("input", "Invalid input data").ToResponse(c)
+				handlers.RespondWithError(c, handlers.ValidationError("input", "Invalid input data"))
 				return
 			}
 
@@ -178,12 +156,8 @@ func TestAddressEndpoints(t *testing.T) {
 	t.Run("CreateAddress_Success", func(t *testing.T) {
 		tests.SetupTest(t, db)
 
-		// Create router
-		r := setupRouter(t, &models.Database{DB: db})
-
-		// Create a test user and profile
+		// Create a test user
 		user := tests.CreateTestUser(db, models.UserTypeCustomer)
-		profile := tests.CreateTestProfile(db, user.ID)
 
 		// Prepare new address data
 		addressData := models.Address{
@@ -204,7 +178,9 @@ func TestAddressEndpoints(t *testing.T) {
 		req.Header.Set("Content-Type", "application/json")
 
 		// Add user authentication to context
-		c := &gin.Context{Request: req, Writer: w}
+		c, _ := gin.CreateTestContext(w)
+		c.Request = req
+
 		authenticateUser(c, user)
 		c.Set("db", &models.Database{DB: db})
 
@@ -214,20 +190,20 @@ func TestAddressEndpoints(t *testing.T) {
 			var userProfile models.UserProfile
 			result := db.Where("user_id = ?", user.ID).First(&userProfile)
 			if result.Error != nil {
-				handlers.NotFoundError("User profile not found").ToResponse(c)
+				handlers.RespondWithError(c, handlers.NotFoundError("User profile not found"))
 				return
 			}
 
 			var address models.Address
 			if err := c.ShouldBindJSON(&address); err != nil {
-				handlers.ValidationError("input", "Invalid address data").ToResponse(c)
+				handlers.RespondWithError(c, handlers.ValidationError("input", "Invalid address data"))
 				return
 			}
 
 			address.UserProfileID = userProfile.ID
 
 			if err := db.Create(&address).Error; err != nil {
-				handlers.DatabaseError("Failed to create address").ToResponse(c)
+				handlers.RespondWithError(c, handlers.DatabaseError("Failed to create address"))
 				return
 			}
 
@@ -259,40 +235,39 @@ func TestAddressEndpoints(t *testing.T) {
 		assert.Nil(t, err)
 		assert.Equal(t, addressData.Name, responseAddress.Name)
 		assert.Equal(t, addressData.Street, responseAddress.Street)
-		assert.Equal(t, profile.ID, responseAddress.UserProfileID)
+		assert.Equal(t, user.ID, responseAddress.UserProfileID)
 		assert.True(t, responseAddress.IsDefault)
 
 		// Verify profile's default address was updated
 		var updatedProfile models.UserProfile
-		db.First(&updatedProfile, profile.ID)
+		db.First(&updatedProfile, user.ID)
 		assert.Equal(t, responseAddress.ID, updatedProfile.DefaultAddressID)
 	})
 
 	t.Run("DeleteAddress_Success", func(t *testing.T) {
 		tests.SetupTest(t, db)
 
-		// Create router
-		r := setupRouter(t, &models.Database{DB: db})
-
-		// Create a test user and profile
+		// Create a test user
 		user := tests.CreateTestUser(db, models.UserTypeCustomer)
-		profile := tests.CreateTestProfile(db, user.ID)
 
 		// Create two addresses
-		address1 := tests.CreateTestAddress(db, profile.ID, true)
-		address2 := tests.CreateTestAddress(db, profile.ID, false)
+		address1 := tests.CreateTestAddress(db, user.ID, true)
+		address2 := tests.CreateTestAddress(db, user.ID, false)
 		address2.Name = "Work"
 		db.Save(&address2)
 
 		// Update profile's default address
-		db.Model(&profile).Update("default_address_id", address1.ID)
+		db.Model(&user).Update("default_address_id", address1.ID)
 
 		// Create a test request to delete the default address
 		w := httptest.NewRecorder()
 		req, _ := http.NewRequest("DELETE", fmt.Sprintf("/api/profiles/me/addresses/%d", address1.ID), nil)
 
 		// Add user authentication to context
-		c := &gin.Context{Request: req, Writer: w}
+		c, _ := gin.CreateTestContext(w)
+		c.Request = req
+
+		// Set user authentication
 		authenticateUser(c, user)
 		c.Set("db", &models.Database{DB: db})
 		c.Params = []gin.Param{{Key: "id", Value: fmt.Sprintf("%d", address1.ID)}}
@@ -304,19 +279,19 @@ func TestAddressEndpoints(t *testing.T) {
 
 			var address models.Address
 			if err := db.First(&address, addressID).Error; err != nil {
-				handlers.NotFoundError("Address not found").ToResponse(c)
+				handlers.RespondWithError(c, handlers.NotFoundError("Address not found"))
 				return
 			}
 
 			// Get the profile to check if this is the default address
 			var profile models.UserProfile
 			if err := db.First(&profile, address.UserProfileID).Error; err != nil {
-				handlers.DatabaseError("Failed to retrieve profile").ToResponse(c)
+				handlers.RespondWithError(c, handlers.DatabaseError("Failed to retrieve profile"))
 				return
 			}
 
 			// If this is the default address, find another address to make default
-			if profile.DefaultAddressID == address.ID {
+			if profile.DefaultAddressID == &address.ID {
 				var newDefaultAddress models.Address
 				err := db.Where("user_profile_id = ? AND id != ?", profile.ID, address.ID).
 					First(&newDefaultAddress).Error
@@ -327,18 +302,18 @@ func TestAddressEndpoints(t *testing.T) {
 					db.Save(&newDefaultAddress)
 
 					// Update profile's default address
-					profile.DefaultAddressID = newDefaultAddress.ID
+					profile.DefaultAddressID = &newDefaultAddress.ID
 					db.Save(&profile)
 				} else {
 					// No other address found, reset default address
-					profile.DefaultAddressID = 0
+					profile.DefaultAddressID = nil
 					db.Save(&profile)
 				}
 			}
 
 			// Delete the address
 			if err := db.Delete(&address).Error; err != nil {
-				handlers.DatabaseError("Failed to delete address").ToResponse(c)
+				handlers.RespondWithError(c, handlers.DatabaseError("Failed to delete address"))
 				return
 			}
 
@@ -358,7 +333,7 @@ func TestAddressEndpoints(t *testing.T) {
 
 		// Verify profile's default address was updated to address2
 		var updatedProfile models.UserProfile
-		db.First(&updatedProfile, profile.ID)
+		db.First(&updatedProfile, user.ID)
 		assert.Equal(t, address2.ID, updatedProfile.DefaultAddressID)
 	})
 }
