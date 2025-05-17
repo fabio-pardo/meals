@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"meals/auth"
 	"meals/handlers"
 	"meals/models"
 	"meals/routes"
@@ -22,16 +21,16 @@ func setupRouter(t *testing.T, db *models.Database) *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
 	r.Use(gin.Recovery())
-	
+
 	// Add DB to context middleware
 	r.Use(func(c *gin.Context) {
 		c.Set("db", db)
 		c.Next()
 	})
-	
+
 	// Set up routes
 	routes.SetupRoutes(r)
-	
+
 	return r
 }
 
@@ -42,51 +41,51 @@ func authenticateUser(c *gin.Context, user models.User) {
 
 func TestUserProfileEndpoints(t *testing.T) {
 	db := tests.SetupTestSuite(t)
-	
+
 	t.Run("GetUserProfile_Success", func(t *testing.T) {
 		tests.SetupTest(t, db)
-		
+
 		// Create router
 		r := setupRouter(t, &models.Database{DB: db})
-		
+
 		// Create a test user and profile
 		user := tests.CreateTestUser(db, models.UserTypeCustomer)
 		profile := tests.CreateTestProfile(db, user.ID)
 		address := tests.CreateTestAddress(db, profile.ID, true)
-		
+
 		// Update the profile with default address
 		db.Model(&profile).Update("default_address_id", address.ID)
-		
+
 		// Create a test request
 		w := httptest.NewRecorder()
 		req, _ := http.NewRequest("GET", "/api/profiles/me", nil)
-		
+
 		// Add user authentication to context
 		c := &gin.Context{Request: req, Writer: w}
 		authenticateUser(c, user)
 		c.Set("db", &models.Database{DB: db})
-		
+
 		// Create a handler to simulate route execution
 		handler := func(c *gin.Context) {
 			// Mock the handler logic
 			userID := user.ID
 			var userProfile models.UserProfile
-			
+
 			result := db.Where("user_id = ?", userID).Preload("Addresses").First(&userProfile)
 			if result.Error != nil {
 				handlers.NotFoundError("User profile not found").ToResponse(c)
 				return
 			}
-			
+
 			c.JSON(http.StatusOK, userProfile)
 		}
-		
+
 		// Execute handler
 		handler(c)
-		
+
 		// Check response
 		assert.Equal(t, http.StatusOK, w.Code)
-		
+
 		// Verify response body
 		var responseProfile models.UserProfile
 		err := json.Unmarshal(w.Body.Bytes(), &responseProfile)
@@ -95,35 +94,35 @@ func TestUserProfileEndpoints(t *testing.T) {
 		assert.Equal(t, user.ID, responseProfile.UserID)
 		assert.NotEmpty(t, responseProfile.Addresses)
 	})
-	
+
 	t.Run("UpdateUserProfile_Success", func(t *testing.T) {
 		tests.SetupTest(t, db)
-		
+
 		// Create router
 		r := setupRouter(t, &models.Database{DB: db})
-		
+
 		// Create a test user and profile
 		user := tests.CreateTestUser(db, models.UserTypeCustomer)
 		profile := tests.CreateTestProfile(db, user.ID)
-		
+
 		// Prepare update data
 		updateData := map[string]interface{}{
 			"phone_number":        "555-987-6543",
 			"dietary_preferences": `{"vegan": true, "allergies": ["gluten"]}`,
 		}
-		
+
 		jsonData, _ := json.Marshal(updateData)
-		
+
 		// Create a test request
 		w := httptest.NewRecorder()
 		req, _ := http.NewRequest("PUT", "/api/profiles/me", bytes.NewBuffer(jsonData))
 		req.Header.Set("Content-Type", "application/json")
-		
+
 		// Add user authentication to context
 		c := &gin.Context{Request: req, Writer: w}
 		authenticateUser(c, user)
 		c.Set("db", &models.Database{DB: db})
-		
+
 		// Create a handler to simulate route execution
 		handler := func(c *gin.Context) {
 			// Mock the handler logic
@@ -132,12 +131,12 @@ func TestUserProfileEndpoints(t *testing.T) {
 				PhoneNumber        string `json:"phone_number"`
 				DietaryPreferences string `json:"dietary_preferences"`
 			}
-			
+
 			if err := c.ShouldBindJSON(&updateRequest); err != nil {
 				handlers.ValidationError("input", "Invalid input data").ToResponse(c)
 				return
 			}
-			
+
 			var userProfile models.UserProfile
 			result := db.Where("user_id = ?", userID).First(&userProfile)
 			if result.Error != nil {
@@ -154,16 +153,16 @@ func TestUserProfileEndpoints(t *testing.T) {
 				userProfile.DietaryPreferences = updateRequest.DietaryPreferences
 				db.Save(&userProfile)
 			}
-			
+
 			c.JSON(http.StatusOK, userProfile)
 		}
-		
+
 		// Execute handler
 		handler(c)
-		
+
 		// Check response
 		assert.Equal(t, http.StatusOK, w.Code)
-		
+
 		// Verify response body
 		var responseProfile models.UserProfile
 		err := json.Unmarshal(w.Body.Bytes(), &responseProfile)
@@ -175,17 +174,17 @@ func TestUserProfileEndpoints(t *testing.T) {
 
 func TestAddressEndpoints(t *testing.T) {
 	db := tests.SetupTestSuite(t)
-	
+
 	t.Run("CreateAddress_Success", func(t *testing.T) {
 		tests.SetupTest(t, db)
-		
+
 		// Create router
 		r := setupRouter(t, &models.Database{DB: db})
-		
+
 		// Create a test user and profile
 		user := tests.CreateTestUser(db, models.UserTypeCustomer)
 		profile := tests.CreateTestProfile(db, user.ID)
-		
+
 		// Prepare new address data
 		addressData := models.Address{
 			Name:      "Office",
@@ -196,19 +195,19 @@ func TestAddressEndpoints(t *testing.T) {
 			Country:   "USA",
 			IsDefault: true,
 		}
-		
+
 		jsonData, _ := json.Marshal(addressData)
-		
+
 		// Create a test request
 		w := httptest.NewRecorder()
 		req, _ := http.NewRequest("POST", "/api/profiles/me/addresses", bytes.NewBuffer(jsonData))
 		req.Header.Set("Content-Type", "application/json")
-		
+
 		// Add user authentication to context
 		c := &gin.Context{Request: req, Writer: w}
 		authenticateUser(c, user)
 		c.Set("db", &models.Database{DB: db})
-		
+
 		// Create a handler to simulate route execution
 		handler := func(c *gin.Context) {
 			// Mock the handler logic
@@ -218,25 +217,25 @@ func TestAddressEndpoints(t *testing.T) {
 				handlers.NotFoundError("User profile not found").ToResponse(c)
 				return
 			}
-			
+
 			var address models.Address
 			if err := c.ShouldBindJSON(&address); err != nil {
 				handlers.ValidationError("input", "Invalid address data").ToResponse(c)
 				return
 			}
-			
+
 			address.UserProfileID = userProfile.ID
-			
+
 			if err := db.Create(&address).Error; err != nil {
 				handlers.DatabaseError("Failed to create address").ToResponse(c)
 				return
 			}
-			
+
 			// If this is the default address, update the profile
 			if address.IsDefault {
 				// If this is the first address or set as default, update the profile's default address
 				db.Model(&userProfile).Update("default_address_id", address.ID)
-				
+
 				// If there are other addresses, make sure they are not default
 				if address.IsDefault {
 					db.Model(&models.Address{}).
@@ -244,16 +243,16 @@ func TestAddressEndpoints(t *testing.T) {
 						Update("is_default", false)
 				}
 			}
-			
+
 			c.JSON(http.StatusCreated, address)
 		}
-		
+
 		// Execute handler
 		handler(c)
-		
+
 		// Check response
 		assert.Equal(t, http.StatusCreated, w.Code)
-		
+
 		// Verify response body
 		var responseAddress models.Address
 		err := json.Unmarshal(w.Body.Bytes(), &responseAddress)
@@ -262,71 +261,71 @@ func TestAddressEndpoints(t *testing.T) {
 		assert.Equal(t, addressData.Street, responseAddress.Street)
 		assert.Equal(t, profile.ID, responseAddress.UserProfileID)
 		assert.True(t, responseAddress.IsDefault)
-		
+
 		// Verify profile's default address was updated
 		var updatedProfile models.UserProfile
 		db.First(&updatedProfile, profile.ID)
 		assert.Equal(t, responseAddress.ID, updatedProfile.DefaultAddressID)
 	})
-	
+
 	t.Run("DeleteAddress_Success", func(t *testing.T) {
 		tests.SetupTest(t, db)
-		
+
 		// Create router
 		r := setupRouter(t, &models.Database{DB: db})
-		
+
 		// Create a test user and profile
 		user := tests.CreateTestUser(db, models.UserTypeCustomer)
 		profile := tests.CreateTestProfile(db, user.ID)
-		
+
 		// Create two addresses
 		address1 := tests.CreateTestAddress(db, profile.ID, true)
 		address2 := tests.CreateTestAddress(db, profile.ID, false)
 		address2.Name = "Work"
 		db.Save(&address2)
-		
+
 		// Update profile's default address
 		db.Model(&profile).Update("default_address_id", address1.ID)
-		
+
 		// Create a test request to delete the default address
 		w := httptest.NewRecorder()
 		req, _ := http.NewRequest("DELETE", fmt.Sprintf("/api/profiles/me/addresses/%d", address1.ID), nil)
-		
+
 		// Add user authentication to context
 		c := &gin.Context{Request: req, Writer: w}
 		authenticateUser(c, user)
 		c.Set("db", &models.Database{DB: db})
 		c.Params = []gin.Param{{Key: "id", Value: fmt.Sprintf("%d", address1.ID)}}
-		
+
 		// Create a handler to simulate route execution
 		handler := func(c *gin.Context) {
 			// Mock the handler logic
 			addressID := address1.ID
-			
+
 			var address models.Address
 			if err := db.First(&address, addressID).Error; err != nil {
 				handlers.NotFoundError("Address not found").ToResponse(c)
 				return
 			}
-			
+
 			// Get the profile to check if this is the default address
 			var profile models.UserProfile
 			if err := db.First(&profile, address.UserProfileID).Error; err != nil {
 				handlers.DatabaseError("Failed to retrieve profile").ToResponse(c)
 				return
 			}
-			
+
 			// If this is the default address, find another address to make default
 			if profile.DefaultAddressID == address.ID {
 				var newDefaultAddress models.Address
 				err := db.Where("user_profile_id = ? AND id != ?", profile.ID, address.ID).
 					First(&newDefaultAddress).Error
-				
+
 				if err == nil {
 					// Set the new address as default
 					newDefaultAddress.IsDefault = true
 					db.Save(&newDefaultAddress)
-					
+
 					// Update profile's default address
 					profile.DefaultAddressID = newDefaultAddress.ID
 					db.Save(&profile)
@@ -336,27 +335,27 @@ func TestAddressEndpoints(t *testing.T) {
 					db.Save(&profile)
 				}
 			}
-			
+
 			// Delete the address
 			if err := db.Delete(&address).Error; err != nil {
 				handlers.DatabaseError("Failed to delete address").ToResponse(c)
 				return
 			}
-			
+
 			c.Status(http.StatusNoContent)
 		}
-		
+
 		// Execute handler
 		handler(c)
-		
+
 		// Check response
 		assert.Equal(t, http.StatusNoContent, w.Code)
-		
+
 		// Verify address was deleted
 		var deletedAddress models.Address
 		err := db.First(&deletedAddress, address1.ID).Error
 		assert.Error(t, err, "Expected address to be deleted")
-		
+
 		// Verify profile's default address was updated to address2
 		var updatedProfile models.UserProfile
 		db.First(&updatedProfile, profile.ID)

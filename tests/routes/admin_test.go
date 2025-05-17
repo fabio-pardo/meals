@@ -34,8 +34,9 @@ func TestAdminEndpoints(t *testing.T) {
 		w := httptest.NewRecorder()
 		req, _ := http.NewRequest("GET", "/api/admin/users", nil)
 
-		// Add admin authentication to context
-		c := &gin.Context{Request: req, Writer: w}
+		// Create test context
+		c, _ := gin.CreateTestContext(w)
+		c.Request = req
 		authenticateUser(c, admin)
 		c.Set("db", &models.Database{DB: db})
 
@@ -49,7 +50,7 @@ func TestAdminEndpoints(t *testing.T) {
 			database := dbVal.(*models.Database)
 
 			if err := database.DB.Find(&users).Error; err != nil {
-				handlers.DatabaseError("Failed to retrieve users").ToResponse(c)
+				handlers.HandleAppError(c, handlers.DatabaseError("Failed to retrieve users"))
 				return
 			}
 
@@ -122,8 +123,9 @@ func TestAdminEndpoints(t *testing.T) {
 		req, _ := http.NewRequest("PATCH", fmt.Sprintf("/api/admin/users/%d/role", customer.ID), bytes.NewBuffer(jsonData))
 		req.Header.Set("Content-Type", "application/json")
 
-		// Add admin authentication to context
-		c := &gin.Context{Request: req, Writer: w}
+		// Create test context and set up request
+		c, _ := gin.CreateTestContext(w)
+		c.Request = req
 		authenticateUser(c, admin)
 		c.Set("db", &models.Database{DB: db})
 		c.Params = []gin.Param{{Key: "id", Value: fmt.Sprintf("%d", customer.ID)}}
@@ -138,7 +140,7 @@ func TestAdminEndpoints(t *testing.T) {
 			}
 
 			if err := c.ShouldBindJSON(&roleUpdate); err != nil {
-				handlers.ValidationError("input", "Invalid role update data").ToResponse(c)
+				handlers.HandleAppError(c, handlers.ValidationError("input", "Invalid role update data"))
 				return
 			}
 
@@ -149,14 +151,14 @@ func TestAdminEndpoints(t *testing.T) {
 			// Find the user
 			var user models.User
 			if err := database.DB.First(&user, userID).Error; err != nil {
-				handlers.NotFoundError("User not found").ToResponse(c)
+				handlers.HandleAppError(c, handlers.NotFoundError("User not found"))
 				return
 			}
 
 			// Update the user role
 			user.UserType = roleUpdate.UserType
 			if err := database.DB.Save(&user).Error; err != nil {
-				handlers.DatabaseError("Failed to update user role").ToResponse(c)
+				handlers.HandleAppError(c, handlers.DatabaseError("Failed to update user role"))
 				return
 			}
 
@@ -219,8 +221,9 @@ func TestAdminEndpoints(t *testing.T) {
 		w := httptest.NewRecorder()
 		req, _ := http.NewRequest("GET", "/api/admin/orders", nil)
 
-		// Add admin authentication to context
-		c := &gin.Context{Request: req, Writer: w}
+		// Create test context and set up request
+		c, _ := gin.CreateTestContext(w)
+		c.Request = req
 		authenticateUser(c, admin)
 		c.Set("db", &models.Database{DB: db})
 
@@ -234,7 +237,7 @@ func TestAdminEndpoints(t *testing.T) {
 			database := dbVal.(*models.Database)
 
 			if err := database.DB.Preload("OrderItems").Find(&orders).Error; err != nil {
-				handlers.DatabaseError("Failed to retrieve orders").ToResponse(c)
+				handlers.HandleAppError(c, handlers.DatabaseError("Failed to retrieve orders"))
 				return
 			}
 
@@ -298,8 +301,9 @@ func TestAdminEndpoints(t *testing.T) {
 		req, _ := http.NewRequest("PATCH", fmt.Sprintf("/api/admin/orders/%d/assign", order.ID), bytes.NewBuffer(jsonData))
 		req.Header.Set("Content-Type", "application/json")
 
-		// Add admin authentication to context
-		c := &gin.Context{Request: req, Writer: w}
+		// Create test context and set up request
+		c, _ := gin.CreateTestContext(w)
+		c.Request = req
 		authenticateUser(c, admin)
 		c.Set("db", &models.Database{DB: db})
 		c.Params = []gin.Param{{Key: "id", Value: fmt.Sprintf("%d", order.ID)}}
@@ -314,7 +318,7 @@ func TestAdminEndpoints(t *testing.T) {
 			}
 
 			if err := c.ShouldBindJSON(&assignRequest); err != nil {
-				handlers.ValidationError("input", "Invalid assignment data").ToResponse(c)
+				handlers.HandleAppError(c, handlers.ValidationError("input", "Invalid assignment data"))
 				return
 			}
 
@@ -325,20 +329,20 @@ func TestAdminEndpoints(t *testing.T) {
 			// Find the order
 			var order models.Order
 			if err := database.DB.First(&order, orderID).Error; err != nil {
-				handlers.NotFoundError("Order not found").ToResponse(c)
+				handlers.HandleAppError(c, handlers.NotFoundError("Order not found"))
 				return
 			}
 
 			// Find the driver
 			var driver models.User
 			if err := database.DB.First(&driver, assignRequest.DriverID).Error; err != nil {
-				handlers.NotFoundError("Driver not found").ToResponse(c)
+				handlers.HandleAppError(c, handlers.NotFoundError("Driver not found"))
 				return
 			}
 
 			// Verify the driver is actually a driver
 			if driver.UserType != models.UserTypeDriver {
-				handlers.ValidationError("driver", "User is not a driver").ToResponse(c)
+				handlers.HandleAppError(c, handlers.ValidationError("driver", "User is not a driver"))
 				return
 			}
 
@@ -346,7 +350,7 @@ func TestAdminEndpoints(t *testing.T) {
 			driverID := assignRequest.DriverID
 			order.DriverID = &driverID
 			if err := database.DB.Save(&order).Error; err != nil {
-				handlers.DatabaseError("Failed to assign driver to order").ToResponse(c)
+				handlers.HandleAppError(c, handlers.DatabaseError("Failed to assign driver to order"))
 				return
 			}
 

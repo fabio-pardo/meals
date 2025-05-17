@@ -26,6 +26,8 @@ type Order struct {
 	DeletedAt       gorm.DeletedAt `json:"deleted_at" gorm:"index"`
 	UserID          uint           `json:"user_id" gorm:"not null"`
 	User            User           `json:"user" gorm:"foreignKey:UserID;references:ID"`
+	DriverID        *uint          `json:"driver_id" gorm:"index"`
+	Driver          *User          `json:"driver,omitempty" gorm:"foreignKey:DriverID;references:ID"`
 	OrderItems      []OrderItem    `json:"order_items" gorm:"foreignKey:OrderID;constraint:OnDelete:CASCADE;OnUpdate:CASCADE;"`
 	Status          OrderStatus    `json:"status" gorm:"type:varchar(20);not null;default:'pending'"`
 	TotalAmount     float64        `json:"total_amount" gorm:"not null"`
