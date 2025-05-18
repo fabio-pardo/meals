@@ -20,31 +20,43 @@ func InitTestDB() *gorm.DB {
 	// Use test environment
 	os.Setenv("APP_ENV", "test")
 	config.InitConfig()
-	
+
 	// Configure test database logger
 	newLogger := logger.New(
 		log.New(os.Stdout, "\r\n", log.LstdFlags),
 		logger.Config{
 			SlowThreshold:             time.Second,
-			LogLevel:                  logger.Silent,
+			LogLevel:                  logger.Info, // Increased verbosity for debugging
 			IgnoreRecordNotFoundError: true,
 			Colorful:                  false,
 		},
 	)
-	
+
 	// Connect to test database
 	dbConfig := config.AppConfig.Database
+
+	// Override with environment variables if present
+	if os.Getenv("DATABASE_USER") != "" {
+		dbConfig.User = os.Getenv("DATABASE_USER")
+	}
+	if os.Getenv("DATABASE_PASSWORD") != "" {
+		dbConfig.Password = os.Getenv("DATABASE_PASSWORD")
+	}
+	if os.Getenv("DATABASE_NAME") != "" {
+		dbConfig.Name = os.Getenv("DATABASE_NAME")
+	}
+
 	dsn := dbConfig.GetDSN()
-	
+
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
-		Logger: newLogger,
-		DisableForeignKeyConstraintWhenMigrating: false, // Enable foreign key constraints for testing
+		Logger:                                   newLogger,
+		DisableForeignKeyConstraintWhenMigrating: true, // Enable foreign key constraints for testing
 	})
-	
+
 	if err != nil {
 		log.Fatalf("Failed to connect to test DB: %v", err)
 	}
-	
+
 	// Disable foreign key checks temporarily
 	err = db.Exec("SET CONSTRAINTS ALL DEFERRED").Error
 	if err != nil {
@@ -70,55 +82,25 @@ func InitTestDB() *gorm.DB {
 		}
 	}
 
+	// Disable foreign key checks during migration
+	err = db.Exec("SET CONSTRAINTS ALL DEFERRED").Error
+	if err != nil {
+		log.Fatalf("Failed to disable constraints: %v", err)
+	}
+
 	// Migrate tables in dependency order
 	err = db.AutoMigrate(
 		&models.User{},
+		&models.Order{},
+		&models.OrderItem{},
 		&models.Meal{},
-	)
-	if err != nil {
-		log.Fatalf("Failed to migrate initial tables: %v", err)
-	}
-
-	err = db.AutoMigrate(
 		&models.Menu{},
-	)
-	if err != nil {
-		log.Fatalf("Failed to migrate menu table: %v", err)
-	}
-
-	err = db.AutoMigrate(
 		&models.MenuMeal{},
-	)
-	if err != nil {
-		log.Fatalf("Failed to migrate menu_meals table: %v", err)
-	}
-
-	err = db.AutoMigrate(
 		&models.UserProfile{},
-	)
-	if err != nil {
-		log.Fatalf("Failed to migrate user_profiles table: %v", err)
-	}
-
-	err = db.AutoMigrate(
 		&models.Address{},
 	)
 	if err != nil {
-		log.Fatalf("Failed to migrate addresses table: %v", err)
-	}
-
-	err = db.AutoMigrate(
-		&models.Order{},
-	)
-	if err != nil {
-		log.Fatalf("Failed to migrate orders table: %v", err)
-	}
-
-	err = db.AutoMigrate(
-		&models.OrderItem{},
-	)
-	if err != nil {
-		log.Fatalf("Failed to migrate order_items table: %v", err)
+		log.Fatalf("Failed to migrate tables: %v", err)
 	}
 
 	// Re-enable foreign key checks
@@ -126,7 +108,7 @@ func InitTestDB() *gorm.DB {
 	if err != nil {
 		log.Fatalf("Failed to re-enable constraints: %v", err)
 	}
-	
+
 	return db
 }
 
@@ -136,20 +118,20 @@ func ClearTestDB(db *gorm.DB) error {
 	tables := []string{
 		"order_items",
 		"orders",
-		"addresses", 
+		"addresses",
 		"user_profiles",
 		"menu_meals",
 		"menus",
 		"meals",
 		"users",
 	}
-	
+
 	for _, table := range tables {
 		if err := db.Exec("DELETE FROM " + table).Error; err != nil {
 			return err
 		}
 	}
-	
+
 	return nil
 }
 
@@ -186,19 +168,19 @@ func CreateTestUser(db *gorm.DB, userType models.UserType) models.User {
 		IDToken:     "test_id_token_" + timestamp,
 		UserType:    userType,
 	}
-	
+
 	// Create user and check for errors
 	result := db.Create(&user)
 	if result.Error != nil {
 		log.Printf("Error creating test user: %v", result.Error)
 	}
-	
+
 	// Ensure the user has a valid ID
 	if user.ID == 0 {
 		// Try to find the user by email if create didn't set the ID
 		db.Where("email = ?", user.Email).First(&user)
 	}
-	
+
 	return user
 }
 
@@ -208,7 +190,7 @@ func CreateTestMeal(db *gorm.DB, name string, price float64) models.Meal {
 		Name:  name,
 		Price: price,
 	}
-	
+
 	db.Create(&meal)
 	return meal
 }
@@ -222,9 +204,9 @@ func CreateTestMenu(db *gorm.DB, name string, mealIDs []uint) models.Menu {
 		WeekEndDate:   time.Now().Add(7 * 24 * time.Hour),
 		MealIDs:       mealIDs,
 	}
-	
+
 	db.Create(&menu)
-	
+
 	// Create menu-meal associations
 	for _, mealID := range mealIDs {
 		menuMeal := models.MenuMeal{
@@ -234,7 +216,7 @@ func CreateTestMenu(db *gorm.DB, name string, mealIDs []uint) models.Menu {
 		}
 		db.Create(&menuMeal)
 	}
-	
+
 	return menu
 }
 
@@ -247,15 +229,15 @@ func CreateTestOrder(db *gorm.DB, userID uint, items []models.OrderItem) models.
 		DeliveryDate:    time.Now().Add(24 * time.Hour),
 		PaymentMethod:   "credit_card",
 	}
-	
+
 	db.Create(&order)
-	
+
 	// Add order items with the order ID
 	for i := range items {
 		items[i].OrderID = order.ID
 		db.Create(&items[i])
 	}
-	
+
 	// Calculate and update total amount
 	var total float64
 	for _, item := range items {
@@ -263,7 +245,7 @@ func CreateTestOrder(db *gorm.DB, userID uint, items []models.OrderItem) models.
 	}
 	order.TotalAmount = total
 	db.Save(&order)
-	
+
 	return order
 }
 
@@ -273,7 +255,7 @@ func CreateTestProfile(db *gorm.DB, userID uint) models.UserProfile {
 		UserID:      userID,
 		PhoneNumber: "555-123-4567",
 	}
-	
+
 	db.Create(&profile)
 	return profile
 }
@@ -290,13 +272,13 @@ func CreateTestAddress(db *gorm.DB, profileID uint, isDefault bool) models.Addre
 		Country:       "USA",
 		IsDefault:     isDefault,
 	}
-	
+
 	db.Create(&address)
-	
+
 	// Update profile's default address if this is the default
 	if isDefault {
 		db.Model(&models.UserProfile{}).Where("id = ?", profileID).Update("default_address_id", address.ID)
 	}
-	
+
 	return address
 }
