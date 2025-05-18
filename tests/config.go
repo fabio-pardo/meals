@@ -4,6 +4,7 @@ import (
 	"log"
 	"meals/config"
 	"meals/models"
+	"meals/store"
 	"os"
 	"testing"
 	"time"
@@ -138,6 +139,12 @@ func ClearTestDB(db *gorm.DB) error {
 // SetupTestSuite sets up the test suite
 func SetupTestSuite(t *testing.T) *gorm.DB {
 	db := InitTestDB()
+	// Set global store DB for transaction tests
+	store.DB = db
+	// Drop custom test tables to ensure a clean slate
+	if err := db.Exec("DROP TABLE IF EXISTS transaction_success_test, transaction_fail_test CASCADE").Error; err != nil {
+		t.Fatalf("Failed to drop custom test tables: %v", err)
+	}
 	err := ClearTestDB(db)
 	if err != nil {
 		t.Fatalf("Failed to clear test database: %v", err)

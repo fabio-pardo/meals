@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"github.com/spf13/viper"
+	"path/filepath"
+	"runtime"
 )
 
 // Config holds all configuration for the application
@@ -64,29 +66,30 @@ func InitConfig() {
 	env := getEnvironment()
 	log.Printf("Loading configuration for environment: %s", env)
 
-	// Set up Viper
-	viper.SetConfigName("config") // load base config
-	viper.SetConfigType("yaml")
-	viper.AddConfigPath(".")         // look for config in the working directory
-	viper.AddConfigPath("./config/") // look for config in ./config/ directory
+	// Determine absolute config directory
+	_, b, _, _ := runtime.Caller(0)
+	configDir := filepath.Dir(b)
 
-	// Try to read the base config file
-	if err := viper.ReadInConfig(); err != nil {
-		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-			log.Println("No base config file found, using environment variables and defaults")
-		} else {
-			log.Printf("Error reading base config file: %s", err)
+	// Load base config file
+	baseFile := filepath.Join(configDir, "config.yaml")
+	if _, err := os.Stat(baseFile); err == nil {
+		viper.SetConfigFile(baseFile)
+		if err := viper.ReadInConfig(); err != nil {
+			log.Printf("Error reading base config file %s: %v", baseFile, err)
 		}
+	} else {
+		log.Printf("No base config file found at %s, using defaults", baseFile)
 	}
 
-	// Load environment specific config
-	viper.SetConfigName(fmt.Sprintf("config.%s", env))
-	if err := viper.MergeInConfig(); err != nil {
-		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-			log.Printf("No environment-specific config file found for %s, using base config", env)
-		} else {
-			log.Printf("Error reading environment config file: %s", err)
+	// Load environment-specific config file
+	envFile := filepath.Join(configDir, fmt.Sprintf("config.%s.yaml", env))
+	if _, err := os.Stat(envFile); err == nil {
+		viper.SetConfigFile(envFile)
+		if err := viper.MergeInConfig(); err != nil {
+			log.Printf("Error merging environment config file %s: %v", envFile, err)
 		}
+	} else {
+		log.Printf("No environment-specific config file found at %s, using base/defaults", envFile)
 	}
 
 	// Override with environment variables
@@ -98,7 +101,7 @@ func InitConfig() {
 		log.Fatalf("Failed to unmarshal configuration: %v", err)
 	}
 
-	// Set the environment again to ensure it's correct
+	// Ensure environment is set
 	AppConfig.Server.Environment = env
 
 	// Print the configuration for debugging (not in production)
