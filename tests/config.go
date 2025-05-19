@@ -209,7 +209,6 @@ func CreateTestMenu(db *gorm.DB, name string, mealIDs []uint) models.Menu {
 		Description:   "Test menu description",
 		WeekStartDate: time.Now(),
 		WeekEndDate:   time.Now().Add(7 * 24 * time.Hour),
-		MealIDs:       mealIDs,
 	}
 
 	db.Create(&menu)

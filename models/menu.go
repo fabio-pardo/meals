@@ -11,5 +11,4 @@ type Menu struct {
 	CreatedAt     time.Time  `gorm:"autoCreateTime;not null"`
 	UpdatedAt     time.Time  `gorm:"autoUpdateTime;not null"`
 	MenuMeals     []MenuMeal `json:"menu_meals" gorm:"foreignKey:MenuID;constraint:OnDelete:CASCADE;OnUpdate:CASCADE;"`
-	MealIDs       []uint     `json:"meal_ids" gorm:"-"` // Used for handling many-to-many relationships, not stored in DB
 }

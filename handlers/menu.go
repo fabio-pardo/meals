@@ -24,28 +24,28 @@ func CreateMenuHandler(c *gin.Context) {
 		}
 
 		// If menu has associated meals, validate and handle the relationships
-		if len(newMenu.MealIDs) > 0 {
+		if len(newMenu.MenuMeals) > 0 {
 			// Verify all referenced meal IDs exist
 			var count int64
-			if err := tx.Model(&models.Meal{}).Where("id IN ?", newMenu.MealIDs).Count(&count).Error; err != nil {
+			if err := tx.Model(&models.Meal{}).Where("id IN ?", newMenu.MenuMeals).Count(&count).Error; err != nil {
 				return err
 			}
 
-			if int(count) != len(newMenu.MealIDs) {
+			if int(count) != len(newMenu.MenuMeals) {
 				return RelationshipErrorType{
 					Message: "One or more meal IDs do not exist",
 					Details: map[string]interface{}{
-						"provided_ids": newMenu.MealIDs,
-						"found_count": count,
+						"provided_ids": newMenu.MenuMeals,
+						"found_count":  count,
 					},
 				}
 			}
 
 			// Create menu-meal associations
-			for _, mealID := range newMenu.MealIDs {
+			for _, meal := range newMenu.MenuMeals {
 				menuMeal := models.MenuMeal{
 					MenuID: newMenu.ID,
-					MealID: mealID,
+					MealID: meal.MealID,
 				}
 				if err := tx.Create(&menuMeal).Error; err != nil {
 					return err
@@ -96,19 +96,19 @@ func UpdateMenuHandler(c *gin.Context) {
 		}
 
 		// If meal associations have changed, update them
-		if len(updatedMenu.MealIDs) > 0 {
+		if len(updatedMenu.MenuMeals) > 0 {
 			// Verify all referenced meal IDs exist
 			var count int64
-			if err := tx.Model(&models.Meal{}).Where("id IN ?", updatedMenu.MealIDs).Count(&count).Error; err != nil {
+			if err := tx.Model(&models.Meal{}).Where("id IN ?", updatedMenu.MenuMeals).Count(&count).Error; err != nil {
 				return err
 			}
 
-			if int(count) != len(updatedMenu.MealIDs) {
+			if int(count) != len(updatedMenu.MenuMeals) {
 				return RelationshipErrorType{
 					Message: "One or more meal IDs do not exist",
 					Details: map[string]interface{}{
-						"provided_ids": updatedMenu.MealIDs,
-						"found_count": count,
+						"provided_ids": updatedMenu.MenuMeals,
+						"found_count":  count,
 					},
 				}
 			}
@@ -119,10 +119,10 @@ func UpdateMenuHandler(c *gin.Context) {
 			}
 
 			// Create new associations
-			for _, mealID := range updatedMenu.MealIDs {
+			for _, mealID := range updatedMenu.MenuMeals {
 				menuMeal := models.MenuMeal{
 					MenuID: updatedMenu.ID,
-					MealID: mealID,
+					MealID: mealID.MealID,
 				}
 				if err := tx.Create(&menuMeal).Error; err != nil {
 					return err
@@ -150,7 +150,7 @@ func UpdateMenuHandler(c *gin.Context) {
 // GetMenusHandler retrieves all menus with their associated meals
 func GetMenusHandler(c *gin.Context) {
 	var menus []models.Menu
-	
+
 	// Use transaction to ensure data consistency
 	err := store.WithTransaction(c, func(tx *gorm.DB) error {
 		// Get all menus with their menu-meal associations and the associated meals

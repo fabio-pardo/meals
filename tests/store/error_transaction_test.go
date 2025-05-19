@@ -135,11 +135,10 @@ func TestErrorHandlingInTransactions(t *testing.T) {
 		// Create test meal - we don't need the user for this test
 		meal := tests.CreateTestMeal(db, "Test Meal", 12.99)
 
+		tests.CreateTestMenu(db, "Test Menu", []uint{meal.ID})
+
 		// Run a transaction that will raise a relationship error
 		err := store.WithTransaction(c, func(tx *gorm.DB) error {
-			// Create a menu that references the meal
-			_ = tests.CreateTestMenu(tx, "Test Menu", []uint{meal.ID})
-
 			// Try to delete the meal (which should fail with relationship error)
 			if err := tx.Delete(&meal).Error; err != nil {
 				// In a real app, we'd detect the foreign key error and return a relationship error

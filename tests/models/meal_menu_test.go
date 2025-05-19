@@ -92,7 +92,6 @@ func TestMenuModel(t *testing.T) {
 			Description:   "Our special selections for this week",
 			WeekStartDate: startDate,
 			WeekEndDate:   endDate,
-			MealIDs:       []uint{meal1.ID, meal2.ID, meal3.ID},
 		}
 
 		// Save the menu
@@ -100,7 +99,7 @@ func TestMenuModel(t *testing.T) {
 		assert.Nil(t, err, "Expected no error when creating menu")
 
 		// Create menu-meal associations
-		for _, mealID := range menu.MealIDs {
+		for _, mealID := range []uint{meal1.ID, meal2.ID, meal3.ID} {
 			menuMeal := models.MenuMeal{
 				MenuID:      menu.ID,
 				MealID:      mealID,
@@ -131,7 +130,6 @@ func TestMenuModel(t *testing.T) {
 		// Update the menu
 		menu.Name = "Updated Menu"
 		menu.Description = "Updated description"
-		menu.MealIDs = []uint{meal1.ID, meal2.ID} // Add another meal
 
 		err := db.Save(&menu).Error
 		assert.Nil(t, err, "Expected no error when updating menu")
