@@ -1,7 +1,6 @@
 package store_test
 
 import (
-	"context"
 	"errors"
 	"meals/store"
 	"meals/tests"
@@ -91,14 +90,18 @@ func TestTransactions(t *testing.T) {
 	t.Run("GetTxFromContext_NoTransaction", func(t *testing.T) {
 		tests.SetupTest(t, db)
 
-		// Create an empty context
-		c := context.Background()
+		// Create a test context with Gin
+		gin.SetMode(gin.TestMode)
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Request, _ = http.NewRequest("GET", "/test", nil)
 
 		// Try to get transaction from context
-		tx := store.GetTxFromContext(c.(*gin.Context))
+		tx := store.GetTxFromContext(c)
 
-		// Verify no transaction exists
-		assert.Nil(t, tx, "Expected no transaction in empty context")
+		// Verify it returns the global DB instance when no transaction is in context
+		assert.NotNil(t, tx, "Expected to get global DB instance when no transaction is in context")
+		assert.Equal(t, store.DB, tx, "Expected to get global DB instance when no transaction is in context")
 	})
 
 	t.Run("NestedTransactions", func(t *testing.T) {

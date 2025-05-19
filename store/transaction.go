@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -21,34 +22,67 @@ type TxFnWithResult func(tx TxHandle) (interface{}, error)
 // If the function returns an error, the transaction is rolled back.
 // Otherwise, the transaction is committed.
 // This version supports returning a result along with an error.
+// It also supports nested transactions using savepoints.
 func WithTransactionResult(c *gin.Context, db *gorm.DB, fn TxFnWithResult) (interface{}, error) {
-	tx := db.Begin()
-	if tx.Error != nil {
-		return nil, fmt.Errorf("failed to begin transaction: %w", tx.Error)
-	}
+	// Check if we're already in a transaction
+	tx, inTransaction := c.Request.Context().Value("tx").(*gorm.DB)
 
-	// Set transaction in context so it can be accessed by other functions
-	if c != nil {
-		ctx := context.WithValue(c.Request.Context(), "tx", tx)
-		c.Request = c.Request.WithContext(ctx)
-	}
-
-	// Handle panic by rolling back
-	defer func() {
-		if r := recover(); r != nil {
-			tx.Rollback()
-			panic(r) // Re-throw panic after rollback
+	if !inTransaction {
+		// Start a new transaction if we're not already in one
+		tx = db.Begin()
+		if tx.Error != nil {
+			return nil, fmt.Errorf("failed to begin transaction: %w", tx.Error)
 		}
-	}()
 
+		// Set transaction in context so it can be accessed by other functions
+		if c != nil {
+			ctx := context.WithValue(c.Request.Context(), "tx", tx)
+			c.Request = c.Request.WithContext(ctx)
+		}
+
+		// Handle panic by rolling back
+		defer func() {
+			if r := recover(); r != nil {
+				tx.Rollback()
+				panic(r) // Re-throw panic after rollback
+			}
+		}()
+
+		// Execute the function within the transaction
+		result, err := fn(tx)
+		if err != nil {
+			tx.Rollback()
+			return nil, err
+		}
+
+		// Commit the transaction if no error occurred
+		if err := tx.Commit().Error; err != nil {
+			return nil, fmt.Errorf("failed to commit transaction: %w", err)
+		}
+
+		return result, nil
+	}
+
+	// We're already in a transaction, so we'll use a savepoint for nesting
+	savepointName := fmt.Sprintf("savepoint_%d", time.Now().UnixNano())
+	err := tx.Exec("SAVEPOINT " + savepointName).Error
+	if err != nil {
+		return nil, fmt.Errorf("failed to create savepoint: %w", err)
+	}
+
+	// Execute the function within the existing transaction
 	result, err := fn(tx)
 	if err != nil {
-		tx.Rollback()
+		// Rollback to the savepoint on error
+		if rbErr := tx.Exec("ROLLBACK TO SAVEPOINT " + savepointName).Error; rbErr != nil {
+			return nil, fmt.Errorf("failed to rollback to savepoint: %v (original error: %w)", rbErr, err)
+		}
 		return nil, err
 	}
 
-	if err := tx.Commit().Error; err != nil {
-		return nil, fmt.Errorf("failed to commit transaction: %w", err)
+	// Release the savepoint on success
+	if err := tx.Exec("RELEASE SAVEPOINT " + savepointName).Error; err != nil {
+		return nil, fmt.Errorf("failed to release savepoint: %w", err)
 	}
 
 	return result, nil
