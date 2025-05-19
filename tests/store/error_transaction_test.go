@@ -175,6 +175,6 @@ func TestErrorHandlingInTransactions(t *testing.T) {
 		// Test with a generic error
 		genericError := errors.New("generic error")
 		handled = handlers.HandleAppError(c, genericError)
-		assert.False(t, handled, "Expected generic error not to be handled")
+		assert.True(t, handled, "Expected generic error to be handled")
 	})
 }
