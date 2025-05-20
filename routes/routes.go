@@ -131,14 +131,6 @@ func RegisterRoutes(router *gin.Engine) {
 		driverAdminRoutes.PUT("/driver", handlers.SetDriverProfileHandler)
 	}
 
-	// Addresses
-	addressesGroup := router.Group("/addresses")
-	addressesGroup.Use(auth.RequireRole()) // All address routes require authentication
-	{
-		addressesGroup.GET("", handlers.ListAddressesHandler)
-		addressesGroup.POST("", handlers.CreateAddressHandler)
-	}
-
 	// Admin-only routes
 	adminGroup := router.Group("/admin")
 	adminGroup.Use(auth.RequireAdmin())

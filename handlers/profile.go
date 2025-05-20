@@ -22,21 +22,6 @@ type CreateProfileRequest struct {
 type UpdateProfileRequest struct {
 }
 
-// CreateAddressRequest represents the request body for creating an address
-type CreateAddressRequest struct {
-	Name         string   `json:"name" binding:"required"`
-	Street       string   `json:"street" binding:"required"`
-	Unit         string   `json:"unit"`
-	City         string   `json:"city" binding:"required"`
-	State        string   `json:"state" binding:"required"`
-	ZipCode      string   `json:"zip_code" binding:"required"`
-	Country      string   `json:"country"`
-	IsDefault    bool     `json:"is_default"`
-	Instructions string   `json:"instructions"`
-	Latitude     *float64 `json:"latitude"`
-	Longitude    *float64 `json:"longitude"`
-}
-
 // GetUserProfileHandler handles fetching the profile of the authenticated user
 func GetUserProfileHandler(c *gin.Context) {
 	// Get user ID from context (set by auth middleware)
@@ -157,99 +142,9 @@ func CreateOrUpdateProfileHandler(c *gin.Context) {
 	})
 }
 
-// ListAddressesHandler handles fetching all addresses for the authenticated user
-func ListAddressesHandler(c *gin.Context) {
-	// Get user ID from context
-	userID, exists := c.Get("userID")
-	if !exists {
-		RespondWithError(c, ErrorResponse{
-			Status:  http.StatusUnauthorized,
-			Code:    ErrUnauthorized,
-			Message: "Authentication required",
-		})
-		return
-	}
+// ListAddressesHandler removed - Address model no longer exists
 
-	var profile models.UserProfile
-	db := store.GetTxFromContext(c)
-
-	// First get the user's profile ID
-	result := db.Where("user_id = ?", userID).First(&profile)
-	if result.Error != nil {
-		if result.Error == gorm.ErrRecordNotFound {
-			// If no profile exists, return empty addresses array
-			c.JSON(http.StatusOK, gin.H{
-				"addresses": []gin.H{},
-			})
-			return
-		}
-
-		HandleAppError(c, DatabaseErrorType{
-			Message: "Failed to fetch profile",
-			Details: result.Error.Error(),
-		})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"addresses": []gin.H{},
-	})
-}
-
-// CreateAddressHandler handles adding a new address
-func CreateAddressHandler(c *gin.Context) {
-	// Get user ID from context
-	userID, exists := c.Get("userID")
-	if !exists {
-		RespondWithError(c, ErrorResponse{
-			Status:  http.StatusUnauthorized,
-			Code:    ErrUnauthorized,
-			Message: "Authentication required",
-		})
-		return
-	}
-
-	var req CreateAddressRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		RespondWithError(c, ValidationError("Invalid request data", err.Error()))
-		return
-	}
-
-	err := store.WithTransaction(c, func(tx *gorm.DB) error {
-		// First get or create user profile
-		var profile models.UserProfile
-		result := tx.Where("user_id = ?", userID).First(&profile)
-		if result.Error != nil {
-			if result.Error == gorm.ErrRecordNotFound {
-				// Create new profile
-				profile = models.UserProfile{
-					UserID: userID.(uint),
-				}
-				if err := tx.Create(&profile).Error; err != nil {
-					return DatabaseErrorType{
-						Message: "Failed to create profile",
-						Details: err.Error(),
-					}
-				}
-			} else {
-				return DatabaseErrorType{
-					Message: "Failed to check for existing profile",
-					Details: result.Error.Error(),
-				}
-			}
-		}
-
-		return nil
-	})
-
-	if HandleAppError(c, err) {
-		return
-	}
-
-	c.JSON(http.StatusCreated, gin.H{
-		"address": gin.H{},
-	})
-}
+// CreateAddressHandler removed - Address model no longer exists
 
 // SetDriverProfileHandler handles updating driver-specific profile data
 func SetDriverProfileHandler(c *gin.Context) {
