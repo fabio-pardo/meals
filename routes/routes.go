@@ -110,15 +110,10 @@ func RegisterRoutes(router *gin.Engine) {
 		// Customer & Admin can create orders
 		customerAdminRoutes := ordersGroup.Group("/")
 		customerAdminRoutes.Use(auth.RequireRole(models.UserTypeCustomer, models.UserTypeAdmin))
-		customerAdminRoutes.POST("", handlers.CreateOrderHandler)
-		customerAdminRoutes.POST("/:id/cancel", handlers.CancelOrderHandler)
 
 		// Any authenticated user can view orders (will be filtered by user ID in handler)
 		authenticatedRoutes := ordersGroup.Group("/")
 		authenticatedRoutes.Use(auth.RequireRole())
-		authenticatedRoutes.GET("", handlers.ListOrdersHandler)
-		authenticatedRoutes.GET("/:id", handlers.GetOrderHandler)
-		authenticatedRoutes.PUT("/:id/status", handlers.UpdateOrderStatusHandler)
 	}
 
 	// User Profiles
@@ -142,9 +137,6 @@ func RegisterRoutes(router *gin.Engine) {
 	{
 		addressesGroup.GET("", handlers.ListAddressesHandler)
 		addressesGroup.POST("", handlers.CreateAddressHandler)
-		addressesGroup.GET("/:id", handlers.GetAddressHandler)
-		addressesGroup.PUT("/:id", handlers.UpdateAddressHandler)
-		addressesGroup.DELETE("/:id", handlers.DeleteAddressHandler)
 	}
 
 	// Admin-only routes

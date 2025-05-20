@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"errors"
 	"log"
 	"meals/auth"
 	"meals/models"
@@ -11,8 +12,6 @@ import (
 	"github.com/markbates/goth/gothic"
 	"gorm.io/gorm"
 )
-
-
 
 func GetAuthProviderHandler(c *gin.Context) {
 	c.Request = setProviderInRequest(c.Request, c.Param("provider"))
@@ -34,53 +33,61 @@ func GetAuthCallbackHandler(c *gin.Context) {
 		c.Redirect(http.StatusTemporaryRedirect, "/")
 		return
 	}
-	
+
 	// After successful authentication, log the attempt
 	log.Printf("Successfully authenticated user: %s (%s)", gothUser.Name, gothUser.Email)
 
 	var existingUser models.User
 	result := store.DB.Where("user_id = ?", gothUser.UserID).First(&existingUser)
-	if result.Error != nil {
-		if result.Error == gorm.ErrRecordNotFound {
-			newUser, err := models.ConvertGothUserToModelUser(&gothUser)
-			if err != nil {
-				RespondWithError(c, ErrorResponse{
-					Status:  http.StatusInternalServerError,
-					Code:    ErrInternalServer,
-					Message: "Failed to convert user data",
-				})
-				return
-			}
-			if err := store.DB.Create(newUser).Error; err != nil {
-				RespondWithError(c, DatabaseError("Failed to create user in database"))
-				return
-			}
-		} else {
-			RespondWithError(c, DatabaseError("Failed connection to DB"))
-			return
-		}
-	} else {
+	if result.Error == nil {
+		// User exists, update tokens
 		existingUser.UserID = gothUser.UserID
 		existingUser.AccessToken = gothUser.AccessToken
 		existingUser.AccessTokenSecret = gothUser.AccessTokenSecret
 		existingUser.RefreshToken = gothUser.RefreshToken
 		existingUser.ExpiresAt = gothUser.ExpiresAt
-		// Save the changes to the database
 		if err := store.DB.Save(&existingUser).Error; err != nil {
-			log.Printf("Failed to update gothUser to pre-existing DB User %s", gothUser.UserID)
-			RespondWithError(c, DatabaseError("Failed to update user credentials"))
+			log.Printf("Failed to update gothUser to pre-existing DB User %s: %v", gothUser.UserID, err)
+			HandleAppError(c, DatabaseErrorType{
+				Message: "Failed to update user credentials",
+				Details: err.Error(),
+			})
 			return
 		}
+	} else if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		// User not found, create new user
+		newUser, err := models.ConvertGothUserToModelUser(&gothUser)
+		if err != nil {
+			HandleAppError(c, DatabaseErrorType{
+				Message: "Failed to convert user data",
+				Details: err.Error(),
+			})
+			return
+		}
+		if err := store.DB.Create(newUser).Error; err != nil {
+			HandleAppError(c, DatabaseErrorType{
+				Message: "Failed to create user in database",
+				Details: err.Error(),
+			})
+			return
+		}
+	} else {
+		// Unexpected DB error
+		log.Printf("Database error looking up user %s: %v", gothUser.UserID, result.Error)
+		HandleAppError(c, DatabaseErrorType{
+			Message: "Failed connection to DB",
+			Details: result.Error.Error(),
+		})
+		return
 	}
 
 	// Store user in session cookies
 	err = auth.StoreUserSession(c.Writer, c.Request, gothUser)
 	if err != nil {
 		log.Printf("Failed to store user session: %s", err.Error())
-		RespondWithError(c, ErrorResponse{
-			Status:  http.StatusInternalServerError,
-			Code:    ErrInternalServer,
+		HandleAppError(c, DatabaseErrorType{
 			Message: "Failed to store user session",
+			Details: err.Error(),
 		})
 		return
 	}
@@ -92,15 +99,15 @@ func GetAuthCallbackHandler(c *gin.Context) {
 // LogoutHandler handles user logout by clearing the session
 func LogoutHandler(c *gin.Context) {
 	session, _ := gothic.Store.Get(c.Request, "session")
-	
+
 	// Remove user from session
 	delete(session.Values, "user")
-	
+
 	// Save session
 	if err := session.Save(c.Request, c.Writer); err != nil {
 		log.Printf("Error saving session during logout: %v", err)
 	}
-	
+
 	// Redirect to home page
 	c.Redirect(http.StatusFound, "/")
 }
