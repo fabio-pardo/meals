@@ -105,7 +105,7 @@ func RequireSession() gin.HandlerFunc {
 }
 
 // CreateSession creates a new session for the user
-func CreateSession(c *gin.Context, db *gorm.DB, userID uint, duration time.Duration) (string, error) {
+func CreateSession(c *gin.Context, db *gorm.DB, userID string, duration time.Duration) (string, error) {
 	// Generate random token
 	token := GenerateRandomToken()
 

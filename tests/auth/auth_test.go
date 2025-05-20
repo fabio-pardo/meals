@@ -1,6 +1,7 @@
 package auth_test
 
 import (
+	"fmt"
 	"meals/auth"
 	"meals/models"
 	"meals/tests"
@@ -25,7 +26,7 @@ func TestAuthenticationSystem(t *testing.T) {
 
 		// Create a session
 		session := models.Session{
-			UserID:    user.ID,
+			UserID:    fmt.Sprintf("%d", user.ID),
 			Token:     "valid-session-token",
 			ExpiresAt: time.Now().Add(24 * time.Hour),
 		}
@@ -95,7 +96,7 @@ func TestAuthenticationSystem(t *testing.T) {
 
 		// Create an expired session
 		session := models.Session{
-			UserID:    user.ID,
+			UserID:    fmt.Sprintf("%d", user.ID),
 			Token:     "expired-session-token",
 			ExpiresAt: time.Now().Add(-1 * time.Hour), // Expired
 		}
@@ -155,7 +156,7 @@ func TestAuthenticationSystem(t *testing.T) {
 		loginHandler := func(c *gin.Context) {
 			// Create a new session
 			session := models.Session{
-				UserID:    user.ID,
+				UserID:    fmt.Sprintf("%d", user.ID),
 				Token:     "new-session-token",
 				ExpiresAt: time.Now().Add(24 * time.Hour),
 			}
@@ -213,7 +214,7 @@ func TestAuthenticationSystem(t *testing.T) {
 
 		// Create a session
 		session := models.Session{
-			UserID:    user.ID,
+			UserID:    fmt.Sprintf("%d", user.ID),
 			Token:     "session-to-logout",
 			ExpiresAt: time.Now().Add(24 * time.Hour),
 		}

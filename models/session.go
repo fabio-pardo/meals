@@ -9,7 +9,7 @@ import (
 // Session represents a user authentication session
 type Session struct {
 	gorm.Model
-	UserID    uint      `json:"user_id" gorm:"not null"`
+	UserID    string    `json:"user_id" gorm:"not null"`
 	Token     string    `json:"token" gorm:"uniqueIndex;not null"`
 	ExpiresAt time.Time `json:"expires_at" gorm:"not null"`
 	User      User      `json:"-" gorm:"foreignKey:UserID;references:ID"`

@@ -1,6 +1,7 @@
 package models_test
 
 import (
+	"fmt"
 	"meals/models"
 	"meals/tests"
 	"gorm.io/gorm"
@@ -24,7 +25,7 @@ func TestDriverProfileManagement(t *testing.T) {
 		license := "DL12345678"
 		isAvailable := true
 		profile := models.UserProfile{
-			UserID:         driver.ID,
+			UserID:         fmt.Sprintf("%d", driver.ID),
 			PhoneNumber:    "555-123-4567",
 			VehicleType:    &sedan,
 			LicenseNumber:  &license,
@@ -55,7 +56,7 @@ func TestDriverProfileManagement(t *testing.T) {
 		license := "DL98765432"
 		isAvailable := true
 		profile := models.UserProfile{
-			UserID:         driver.ID,
+			UserID:         fmt.Sprintf("%d", driver.ID),
 			PhoneNumber:    "555-123-4567",
 			VehicleType:    &suv,
 			LicenseNumber:  &license,
@@ -92,7 +93,7 @@ func TestDriverProfileManagement(t *testing.T) {
 		license := "DL12345678"
 		isAvailable := true
 		driverProfile := models.UserProfile{
-			UserID:         driver.ID,
+			UserID:         fmt.Sprintf("%d", driver.ID),
 			PhoneNumber:    "555-123-4567",
 			VehicleType:    &sedan,
 			LicenseNumber:  &license,
@@ -105,7 +106,7 @@ func TestDriverProfileManagement(t *testing.T) {
 		
 		// Create an order
 		order := models.Order{
-			UserID:          customer.ID,
+			UserID:         fmt.Sprintf("%d", customer.ID),
 			DeliveryAddress: "123 Test St",
 			Status:          models.OrderStatusPending,
 			DeliveryDate:    time.Now().Add(24 * time.Hour),
@@ -166,7 +167,7 @@ func TestDriverProfileManagement(t *testing.T) {
 		license1 := "DL11111111"
 		isAvailable1 := true
 		profile1 := models.UserProfile{
-			UserID:         driver1.ID,
+			UserID:         fmt.Sprintf("%d", driver1.ID),
 			PhoneNumber:    "555-111-1111",
 			VehicleType:    &sedan1,
 			LicenseNumber:  &license1,
@@ -178,7 +179,7 @@ func TestDriverProfileManagement(t *testing.T) {
 		license2 := "DL22222222"
 		isAvailable2 := true
 		profile2 := models.UserProfile{
-			UserID:         driver2.ID,
+			UserID:         fmt.Sprintf("%d", driver2.ID),
 			PhoneNumber:    "555-222-2222",
 			VehicleType:    &suv2,
 			LicenseNumber:  &license2,
@@ -199,7 +200,7 @@ func TestDriverProfileManagement(t *testing.T) {
 		}
 		
 		order1 := models.Order{
-			UserID:          customer.ID,
+			UserID:         fmt.Sprintf("%d", customer.ID),
 			Status:          models.OrderStatusPaid,
 			DeliveryAddress: "123 East St, Test City, Test State 12345",
 			DeliveryDate:    time.Now().Add(24 * time.Hour),
@@ -217,7 +218,7 @@ func TestDriverProfileManagement(t *testing.T) {
 		}
 		
 		order2 := models.Order{
-			UserID:          customer.ID,
+			UserID:         fmt.Sprintf("%d", customer.ID),
 			Status:          models.OrderStatusPaid,
 			DeliveryAddress: "456 West St, Test City, Test State 67890",
 			DeliveryDate:    time.Now().Add(48 * time.Hour),

@@ -24,7 +24,7 @@ type Order struct {
 	CreatedAt       time.Time      `json:"created_at" gorm:"autoCreateTime;not null"`
 	UpdatedAt       time.Time      `json:"updated_at" gorm:"autoUpdateTime;not null"`
 	DeletedAt       gorm.DeletedAt `json:"deleted_at" gorm:"index"`
-	UserID          uint           `json:"user_id" gorm:"not null"`
+	UserID          string         `json:"user_id" gorm:"not null"`
 	User            User           `json:"user" gorm:"foreignKey:UserID;references:ID"`
 	DriverID        *uint          `json:"driver_id" gorm:"index"`
 	Driver          *User          `json:"driver,omitempty" gorm:"foreignKey:DriverID;references:ID"`
@@ -51,7 +51,7 @@ func (o *Order) CalculateTotalAmount() {
 func (o *Order) ValidateOrder() []string {
 	var errors []string
 
-	if o.UserID == 0 {
+	if o.UserID == "" {
 		errors = append(errors, "User ID is required")
 	}
 

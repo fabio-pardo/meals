@@ -3,8 +3,8 @@ package routes_test
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
+	"errors"
 	"meals/handlers"
 	"meals/models"
 	"meals/store"
@@ -77,7 +77,7 @@ func TestOrderEndpoints(t *testing.T) {
 				// Set user ID from authenticated user
 				userVal, _ := c.Get("user")
 				user := userVal.(models.User)
-				orderRequest.UserID = user.ID
+				orderRequest.UserID = fmt.Sprintf("%d", user.ID)
 
 				// Set initial status
 				orderRequest.Status = models.OrderStatusPending

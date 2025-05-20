@@ -1,6 +1,7 @@
 package models_test
 
 import (
+	"fmt"
 	"meals/models"
 	"meals/tests"
 	"testing"
@@ -19,7 +20,7 @@ func TestUserProfileManagement(t *testing.T) {
 
 		// Create a profile for the user
 		profile := models.UserProfile{
-			UserID:             user.ID,
+			UserID:             fmt.Sprintf("%d", user.ID),
 			PhoneNumber:        "555-123-4567",
 			DietaryPreferences: []string{"vegetarian", "nuts-free"},
 			PreferencesJSON:    `{"vegetarian": true, "allergies": ["nuts", "dairy"]}`,
@@ -95,7 +96,7 @@ func TestAddressManagement(t *testing.T) {
 
 		// Create an address for the profile
 		address := models.Address{
-			UserProfileID: profile.ID,
+			UserProfileID: fmt.Sprintf("%d", profile.ID),
 			Name:          "Home",
 			Street:        "123 Test St",
 			City:          "Test City",
@@ -111,7 +112,7 @@ func TestAddressManagement(t *testing.T) {
 
 		// Verify the address was created
 		var retrievedAddress models.Address
-		err = db.Where("user_profile_id = ?", profile.ID).First(&retrievedAddress).Error
+		err = db.Where("user_profile_id = ?", fmt.Sprintf("%d", profile.ID)).First(&retrievedAddress).Error
 		assert.Nil(t, err, "Expected no error when retrieving address")
 		assert.Equal(t, address.Street, retrievedAddress.Street)
 		assert.Equal(t, address.City, retrievedAddress.City)
@@ -172,10 +173,10 @@ func TestAddressManagement(t *testing.T) {
 
 		// Create a default address
 		tests.CreateTestAddress(db, profile.ID, true)
-		
+
 		// Create a second non-default address
 		address2 := models.Address{
-			UserProfileID: profile.ID,
+			UserProfileID: fmt.Sprintf("%d", profile.ID),
 			Name:          "Work",
 			Street:        "789 Work St",
 			City:          "Work City",

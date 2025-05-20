@@ -104,7 +104,7 @@ func TestUserProfileEndpoints(t *testing.T) {
 		// Create a handler to simulate route execution
 		handler := func(c *gin.Context) {
 			// Mock the handler logic
-			userID := user.ID
+			userID := user.UserID
 			var updateRequest struct {
 				PhoneNumber        string   `json:"phone_number"`
 				DietaryPreferences []string `json:"dietary_preferences"`
@@ -200,7 +200,7 @@ func TestAddressEndpoints(t *testing.T) {
 				return
 			}
 
-			address.UserProfileID = userProfile.ID
+			address.UserProfileID = fmt.Sprintf("%d", userProfile.ID)
 
 			if err := db.Create(&address).Error; err != nil {
 				handlers.RespondWithError(c, handlers.DatabaseError("Failed to create address"))

@@ -12,7 +12,7 @@ type UserProfile struct {
 	CreatedAt        time.Time      `json:"created_at" gorm:"autoCreateTime;not null"`
 	UpdatedAt        time.Time      `json:"updated_at" gorm:"autoUpdateTime;not null"`
 	DeletedAt        gorm.DeletedAt `json:"deleted_at" gorm:"index"`
-	UserID           uint           `json:"user_id" gorm:"not null;uniqueIndex"`
+	UserID           string         `json:"user_id" gorm:"not null;uniqueIndex"`
 	PhoneNumber      string         `json:"phone_number" gorm:"type:varchar(20)"`
 	DefaultAddressID *uint          `json:"default_address_id" gorm:""`
 	Addresses        []Address      `json:"addresses" gorm:"foreignKey:UserProfileID;constraint:OnDelete:CASCADE;"`
@@ -61,7 +61,7 @@ type Address struct {
 	CreatedAt     time.Time      `json:"created_at" gorm:"autoCreateTime;not null"`
 	UpdatedAt     time.Time      `json:"updated_at" gorm:"autoUpdateTime;not null"`
 	DeletedAt     gorm.DeletedAt `json:"deleted_at" gorm:"index"`
-	UserProfileID uint           `json:"user_profile_id" gorm:"not null"`
+	UserProfileID string         `json:"user_profile_id" gorm:"not null"`
 	Name          string         `json:"name" gorm:"type:varchar(100);not null"` // e.g., "Home", "Work"
 	Street        string         `json:"street" gorm:"type:varchar(255);not null"`
 	Unit          string         `json:"unit" gorm:"type:varchar(50)"`

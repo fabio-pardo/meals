@@ -53,7 +53,7 @@ func CreateOrderHandler(c *gin.Context) {
 	}
 
 	order := models.Order{
-		UserID:          userID.(uint),
+		UserID:          userID.(string),
 		DeliveryAddress: req.DeliveryAddress,
 		DeliveryDate:    req.DeliveryDate,
 		DeliveryNotes:   req.DeliveryNotes,
@@ -140,7 +140,7 @@ func GetOrderHandler(c *gin.Context) {
 	}
 
 	// Ensure user can only view their own orders
-	if order.UserID != userID.(uint) {
+	if order.UserID != userID.(string) {
 		RespondWithError(c, ErrorResponse{
 			Status:  http.StatusForbidden,
 			Code:    ErrForbidden,
@@ -171,7 +171,7 @@ func ListOrdersHandler(c *gin.Context) {
 	db := store.GetTxFromContext(c)
 
 	// Find all orders for this user
-	if err := db.Where("user_id = ?", userID).Preload("OrderItems").Find(&orders).Error; err != nil {
+	if err := db.Where("user_id = ?", userID.(string)).Preload("OrderItems").Find(&orders).Error; err != nil {
 		HandleAppError(c, DatabaseErrorType{
 			Message: "Failed to fetch orders",
 			Details: err.Error(),
@@ -226,7 +226,7 @@ func UpdateOrderStatusHandler(c *gin.Context) {
 		}
 
 		// Ensure user can only update their own orders
-		if order.UserID != userID.(uint) {
+		if order.UserID != userID.(string) {
 			return ValidationErrorType{
 				Message: "You don't have permission to update this order",
 			}
@@ -303,7 +303,7 @@ func CancelOrderHandler(c *gin.Context) {
 		}
 
 		// Ensure user can only cancel their own orders
-		if order.UserID != userID.(uint) {
+		if order.UserID != userID.(string) {
 			return ValidationErrorType{
 				Message: "You don't have permission to cancel this order",
 			}

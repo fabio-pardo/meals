@@ -72,7 +72,7 @@ func GetUserProfileHandler(c *gin.Context) {
 			// If no profile exists, return empty but valid response
 			c.JSON(http.StatusOK, ProfileResponse{
 				Profile: models.UserProfile{
-					UserID: userID.(uint),
+					UserID: userID.(string),
 				},
 			})
 			return
@@ -127,7 +127,7 @@ func CreateOrUpdateProfileHandler(c *gin.Context) {
 			if result.Error == gorm.ErrRecordNotFound {
 				// Create new profile
 				profile = models.UserProfile{
-					UserID: userID.(uint),
+					UserID: userID.(string),
 				}
 				isNew = true
 			} else {
@@ -300,7 +300,7 @@ func CreateAddressHandler(c *gin.Context) {
 			if result.Error == gorm.ErrRecordNotFound {
 				// Create new profile
 				profile = models.UserProfile{
-					UserID: userID.(uint),
+					UserID: userID.(string),
 				}
 				if err := tx.Create(&profile).Error; err != nil {
 					return DatabaseErrorType{
@@ -318,7 +318,7 @@ func CreateAddressHandler(c *gin.Context) {
 
 		// Create address
 		address = models.Address{
-			UserProfileID: profile.ID,
+			UserProfileID: profile.UserID,
 			Name:          req.Name,
 			Street:        req.Street,
 			Unit:          req.Unit,
@@ -712,7 +712,7 @@ func SetDriverProfileHandler(c *gin.Context) {
 			if result.Error == gorm.ErrRecordNotFound {
 				// Create new profile
 				profile = models.UserProfile{
-					UserID: userID.(uint),
+					UserID: userID.(string),
 				}
 				if err := tx.Create(&profile).Error; err != nil {
 					return DatabaseErrorType{

@@ -1,6 +1,7 @@
 package tests
 
 import (
+	"fmt"
 	"log"
 	"meals/config"
 	"meals/models"
@@ -229,7 +230,7 @@ func CreateTestMenu(db *gorm.DB, name string, mealIDs []uint) models.Menu {
 // CreateTestOrder creates a test order
 func CreateTestOrder(db *gorm.DB, userID uint, items []models.OrderItem) models.Order {
 	order := models.Order{
-		UserID:          userID,
+		UserID:          fmt.Sprintf("%d", userID),
 		Status:          models.OrderStatusPending,
 		DeliveryAddress: "123 Test St, Test City, Test State 12345",
 		DeliveryDate:    time.Now().Add(24 * time.Hour),
@@ -258,7 +259,7 @@ func CreateTestOrder(db *gorm.DB, userID uint, items []models.OrderItem) models.
 // CreateTestProfile creates a test user profile
 func CreateTestProfile(db *gorm.DB, userID uint) models.UserProfile {
 	profile := models.UserProfile{
-		UserID:      userID,
+		UserID:      fmt.Sprintf("%d", userID),
 		PhoneNumber: "555-123-4567",
 	}
 
@@ -269,7 +270,7 @@ func CreateTestProfile(db *gorm.DB, userID uint) models.UserProfile {
 // CreateTestAddress creates a test address
 func CreateTestAddress(db *gorm.DB, profileID uint, isDefault bool) models.Address {
 	address := models.Address{
-		UserProfileID: profileID,
+		UserProfileID: fmt.Sprintf("%d", profileID),
 		Name:          "Home",
 		Street:        "123 Test St",
 		City:          "Test City",
