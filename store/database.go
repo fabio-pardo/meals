@@ -17,6 +17,7 @@ func InitDB() {
 
 	// Get the DSN from our config
 	dsn := dbConfig.GetDSN()
+	log.Println("DSN: ", dsn)
 
 	var err error
 	DB, err = gorm.Open(postgres.Open(dsn), &gorm.Config{
@@ -29,6 +30,7 @@ func InitDB() {
 	log.Println("Connected to PostgreSQL successfully")
 
 	if err := DB.AutoMigrate(
+		&models.Session{},
 		&models.User{},
 		&models.UserProfile{},
 		&models.Meal{},

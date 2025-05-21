@@ -7,9 +7,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/spf13/viper"
 	"path/filepath"
 	"runtime"
+
+	"github.com/spf13/viper"
 )
 
 // Config holds all configuration for the application
@@ -115,8 +116,8 @@ func getEnvironment() string {
 	// Check environment variable first
 	env := os.Getenv("APP_ENV")
 	if env == "" {
-		// Default to development
-		env = "development"
+		// Default to test
+		env = "test"
 	}
 
 	// Validate environment
@@ -124,8 +125,8 @@ func getEnvironment() string {
 	case "development", "test", "production":
 		return env
 	default:
-		log.Printf("Unknown environment: %s, defaulting to development", env)
-		return "development"
+		log.Printf("Unknown environment: %s, defaulting to test", env)
+		return "test"
 	}
 }
 

@@ -114,11 +114,11 @@ func GetTxFromContext(c *gin.Context) *gorm.DB {
 	if c == nil {
 		return DB
 	}
-	
+
 	tx, exists := c.Request.Context().Value("tx").(*gorm.DB)
 	if !exists {
 		return DB
 	}
-	
+
 	return tx
 }

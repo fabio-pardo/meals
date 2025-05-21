@@ -75,7 +75,7 @@ func SessionMiddleware() gin.HandlerFunc {
 
 		// Get user from database
 		var user models.User
-		if err := db.First(&user, session.UserID).Error; err != nil {
+		if err := db.First(&user, session.UserIdentifier).Error; err != nil {
 			// User not found, continue the request
 			c.Next()
 			return
@@ -111,9 +111,9 @@ func CreateSession(c *gin.Context, db *gorm.DB, userID string, duration time.Dur
 
 	// Create session
 	session := models.Session{
-		UserID:    userID,
-		Token:     token,
-		ExpiresAt: time.Now().Add(duration),
+		UserIdentifier: userID,
+		Token:          token,
+		ExpiresAt:      time.Now().Add(duration),
 	}
 
 	// Save session to database
