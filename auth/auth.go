@@ -1,3 +1,25 @@
+// Package auth provides authentication and authorization functionality for the Meals API.
+//
+// This package implements OAuth2 authentication using Google as the provider,
+// along with session management for maintaining user authentication state.
+//
+// Key components:
+// - OAuth2 setup and configuration
+// - Session management with secure cookies
+// - User authentication middleware
+// - Role-based authorization
+//
+// Authentication Flow:
+// 1. User visits /auth/google
+// 2. Redirected to Google OAuth2
+// 3. Google redirects to /auth/google/callback
+// 4. User session is created and stored
+// 5. User is redirected to the application
+//
+// Session Management:
+// - Sessions are stored in secure HTTP-only cookies
+// - Session data includes user information from OAuth2
+// - Sessions can be validated and retrieved for authenticated requests
 package auth
 
 import (
@@ -13,6 +35,16 @@ import (
 	"github.com/markbates/goth/providers/google"
 )
 
+// InitOAuth2 initializes the OAuth2 configuration using Google as the provider.
+//
+// This function sets up the OAuth2 provider with credentials from the application
+// configuration and configures the session store for maintaining authentication state.
+//
+// Configuration required:
+// - GoogleKey: OAuth2 client ID from Google Console
+// - GoogleSecret: OAuth2 client secret from Google Console
+// - GoogleRedirectURL: Callback URL registered with Google
+// - SessionSecret: Secret key for signing session cookies
 func InitOAuth2() {
 	// Use the configuration from the config package
 	authConfig := config.AppConfig.Auth
