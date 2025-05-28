@@ -1,0 +1,117 @@
+# Meals App Context for AI Assistance
+
+This is a Go-based meal planning service with the following architecture:
+
+## Technology Stack
+- **Backend**: Go with Gin web framework
+- **Database**: PostgreSQL (primary) + Redis (cache/sessions)
+- **Authentication**: OAuth2 (Google) with session management
+- **Authorization**: Role-based (Customer/Driver/Admin)
+- **ORM**: GORM with automatic migrations
+- **Containerization**: Docker + Docker Compose
+
+## Code Patterns & Conventions
+
+### Error Handling
+- All handlers use `ErrorResponse` struct for consistent error responses
+- Use `RespondWithError()` function for standardized error responses
+- Use `HandleAppError()` for application-specific error handling
+- All errors include request IDs for tracing
+
+### Database Operations
+- Use `store.WithTransaction()` for database operations requiring transactions
+- All models use GORM conventions (soft deletes, timestamps, auto-incrementing IDs)
+- Database connections are managed through the `store` package
+- Use preloading to avoid N+1 queries: `db.Preload("RelatedModel")`
+
+### Authentication & Authorization
+- Authentication uses OAuth2 with Google provider
+- Sessions are stored in cookies and managed by `auth` package
+- Use `auth.RequireAuth()` middleware for authentication
+- Use `auth.RequireRole()` middleware for role-based authorization
+- User types: `UserTypeAdmin`, `UserTypeDriver`, `UserTypeCustomer`
+
+### Request Lifecycle
+- All requests get unique request IDs via `middleware.RequestID()`
+- Requests are logged with IDs via `middleware.Logger()`
+- Panic recovery via `middleware.Recovery()`
+- Authentication/authorization middleware applied per route
+
+## Key Files & Locations
+
+### Entry Points
+- `main.go` - Application entry point
+- `routes/routes.go` - All route definitions and middleware setup
+
+### Business Logic
+- `handlers/` - HTTP request handlers
+- `models/` - Database models and business logic
+- `auth/` - Authentication and authorization logic
+
+### Infrastructure
+- `store/` - Database connection and transaction management
+- `middleware/` - HTTP middleware (logging, recovery, auth)
+- `config/` - Configuration management
+
+### Testing
+- `tests/models/` - Model unit tests
+- `tests/testutils/` - Test utilities and helpers
+
+## Development Commands
+- `make help` - Show all available commands
+- `make dev-setup` - Set up development environment
+- `make docker-up` - Start PostgreSQL and Redis
+- `make run` - Run the application
+- `make test` - Run all tests
+- `make search-funcs` - Find all function definitions
+- `make search-routes` - Find all route definitions
+
+## Common Patterns
+
+### Adding New Endpoints
+1. Define route in `routes/routes.go`
+2. Create handler in appropriate `handlers/*.go` file
+3. Add authentication/authorization middleware if needed
+4. Update API documentation in `docs/api/openapi.yaml`
+
+### Database Models
+- Use GORM struct tags for database constraints
+- Implement validation methods on models
+- Use foreign keys with appropriate cascade settings
+- Follow naming conventions: `UserProfile`, `MenuMeal`, etc.
+
+### Error Responses
+```go
+// Standard error response
+RespondWithError(c, BadRequestError("Invalid input"))
+
+// Database error
+if HandleAppError(c, err) {
+    return
+}
+```
+
+### Transaction Usage
+```go
+err := store.WithTransaction(c, func(tx *gorm.DB) error {
+    // Database operations here
+    return tx.Create(&model).Error
+})
+if HandleAppError(c, err) {
+    return
+}
+```
+
+## Architecture Principles
+- **Separation of Concerns**: Clear boundaries between layers
+- **Dependency Injection**: Database connections passed through context
+- **Consistent Error Handling**: Standardized error responses
+- **Transaction Safety**: Automatic rollback on errors
+- **Request Tracing**: Request IDs for debugging
+- **Role-based Security**: Fine-grained access control
+
+## Documentation
+- Architecture: `docs/architecture/README.md`
+- API Spec: `docs/api/openapi.yaml`
+- Database Schema: `docs/database/schema.md`
+- Navigation: `docs/project-map.md` 

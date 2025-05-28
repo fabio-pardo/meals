@@ -30,3 +30,20 @@ vendor/
 
 # Logs
 *.log
+
+# Documentation builds
+docs/generated/
+docs/swagger/
+coverage.html
+coverage.out
+
+# Context files
+CONTEXT.md
+
+# IDE files
+*.swp
+*.swo
+
+# Air live reload
+.air.toml
+tmp/

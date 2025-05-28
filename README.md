@@ -40,27 +40,61 @@ Key environment variables:
 
 ## Getting Started
 
-### Local Development
+### Quick Start
 
-1. Clone the repository
-2. Copy the configuration template:
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd meals
    ```
-   cp config/config.yaml config/config.development.yaml
+
+2. **Set up development environment**
+   ```bash
+   make dev-setup
    ```
-3. Edit `config/config.development.yaml` with your settings
-4. Run with Docker Compose:
+
+3. **Copy VS Code settings (optional)**
+   ```bash
+   cp .vscode/settings.json.template .vscode/settings.json
    ```
-   docker-compose up -d
+
+4. **Start the application**
+   ```bash
+   make dev
    ```
+
+This will start PostgreSQL, Redis, and the application automatically.
 
 ### Manual Setup
 
-1. Install PostgreSQL and Redis
-2. Set up the configuration as described above
-3. Run the application:
+1. **Install dependencies**
+   ```bash
+   go mod tidy
    ```
-   go run main.go
+
+2. **Start databases**
+   ```bash
+   make docker-up
    ```
+
+3. **Run the application**
+   ```bash
+   make run
+   ```
+
+### Development Commands
+
+Run `make help` to see all available commands:
+
+```bash
+make help              # Show all commands
+make dev-setup         # Set up development environment
+make run               # Run the application
+make test              # Run tests
+make search-funcs      # Find all functions
+make search-routes     # Find all routes
+make docs              # Generate API documentation
+```
 
 ## API Endpoints
 
@@ -111,6 +145,65 @@ AUTH_GOOGLEKEY=your_google_client_id
 AUTH_GOOGLESECRET=your_google_client_secret
 AUTH_GOOGLEREDIRECTURL=https://your-domain.com/auth/google/callback
 AUTH_SESSIONSECRET=your_session_secret_key
+```
+
+## Documentation
+
+- **Architecture**: `docs/architecture/README.md` - System design and components
+- **API Reference**: `docs/api/openapi.yaml` - OpenAPI 3.1 specification
+- **Database Schema**: `docs/database/schema.md` - Database structure and relationships
+- **Project Navigation**: `docs/project-map.md` - Quick reference for code locations
+
+## Development Workflow
+
+### Code Search & Navigation
+
+```bash
+# Find all functions
+make search-funcs
+
+# Find all routes
+make search-routes
+
+# Find all models
+make search-models
+
+# Find error handling patterns
+make search-errors
+
+# Find database operations
+make search-db
+```
+
+### Testing
+
+```bash
+make test              # Run all tests
+make test-verbose      # Run with verbose output
+make test-coverage     # Generate coverage report
+```
+
+### Code Quality
+
+```bash
+make lint              # Run linter
+make format            # Format code
+make vet               # Run go vet
+```
+
+## Project Structure
+
+```
+meals/
+├── docs/              # Documentation
+├── handlers/          # HTTP request handlers
+├── models/            # Database models
+├── auth/              # Authentication & authorization
+├── middleware/        # HTTP middleware
+├── store/             # Database layer
+├── config/            # Configuration management
+├── routes/            # Route definitions
+└── tests/             # Test suites
 ```
 
 ## License
