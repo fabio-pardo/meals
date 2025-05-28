@@ -1,0 +1,602 @@
+openapi: 3.1.0
+info:
+  title: Meals API
+  description: A meal preparation service backend API for meal planning and delivery
+  version: 1.0.0
+  contact:
+    name: Meals App Support
+  license:
+    name: MIT
+
+servers:
+  - url: http://localhost:8080
+    description: Development server
+  - url: https://api.meals.example.com
+    description: Production server
+
+paths:
+  /:
+    get:
+      summary: Home page
+      description: Returns welcome page for authenticated users or login prompt for unauthenticated users
+      tags:
+        - General
+      responses:
+        '200':
+          description: Welcome page HTML or user dashboard
+          content:
+            text/html:
+              schema:
+                type: string
+
+  /auth/google:
+    get:
+      summary: Start Google OAuth2 authentication
+      description: Initiates Google OAuth2 authentication flow
+      tags:
+        - Authentication
+      responses:
+        '302':
+          description: Redirect to Google OAuth2 authorization page
+        '200':
+          description: User already authenticated, redirect to home
+
+  /auth/google/callback:
+    get:
+      summary: Google OAuth2 callback
+      description: Handles the callback from Google OAuth2 authentication
+      tags:
+        - Authentication
+      parameters:
+        - name: code
+          in: query
+          description: Authorization code from Google
+          required: true
+          schema:
+            type: string
+        - name: state
+          in: query
+          description: State parameter for CSRF protection
+          required: true
+          schema:
+            type: string
+      responses:
+        '302':
+          description: Redirect to home page after successful authentication
+        '400':
+          description: Authentication failed
+
+  /logout:
+    get:
+      summary: Log out current user
+      description: Clears user session and logs out the current user
+      tags:
+        - Authentication
+      responses:
+        '302':
+          description: Redirect to home page after logout
+
+  /meals:
+    get:
+      summary: List all meals
+      description: Retrieve a list of all available meals
+      tags:
+        - Meals
+      responses:
+        '200':
+          description: List of meals
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Meal'
+        '500':
+          $ref: '#/components/responses/DatabaseError'
+
+    post:
+      summary: Create a new meal
+      description: Create a new meal with the provided information
+      tags:
+        - Meals
+      security:
+        - sessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MealInput'
+      responses:
+        '201':
+          description: Meal created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Meal'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/DatabaseError'
+
+  /meals/{id}:
+    get:
+      summary: Get a specific meal
+      description: Retrieve details of a specific meal by ID
+      tags:
+        - Meals
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Meal ID
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Meal details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Meal'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/DatabaseError'
+
+    put:
+      summary: Update a meal
+      description: Update an existing meal with new information
+      tags:
+        - Meals
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Meal ID
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MealInput'
+      responses:
+        '200':
+          description: Meal updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Meal'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/DatabaseError'
+
+    delete:
+      summary: Delete a meal
+      description: Delete an existing meal by ID
+      tags:
+        - Meals
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Meal ID
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Meal deleted successfully
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/DatabaseError'
+
+  /menus:
+    get:
+      summary: List all menus
+      description: Retrieve a list of all available menus
+      tags:
+        - Menus
+      responses:
+        '200':
+          description: List of menus
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Menu'
+        '500':
+          $ref: '#/components/responses/DatabaseError'
+
+    post:
+      summary: Create a new menu
+      description: Create a new menu with the provided information
+      tags:
+        - Menus
+      security:
+        - sessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MenuInput'
+      responses:
+        '201':
+          description: Menu created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Menu'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/DatabaseError'
+
+    put:
+      summary: Update a menu
+      description: Update an existing menu with new information
+      tags:
+        - Menus
+      security:
+        - sessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MenuInput'
+      responses:
+        '200':
+          description: Menu updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Menu'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/DatabaseError'
+
+  /profile:
+    get:
+      summary: Get user profile
+      description: Retrieve the profile of the authenticated user
+      tags:
+        - Profile
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProfileResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/DatabaseError'
+
+    put:
+      summary: Create or update user profile
+      description: Create or update the profile of the authenticated user
+      tags:
+        - Profile
+      security:
+        - sessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProfileInput'
+      responses:
+        '200':
+          description: Profile updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProfileResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/DatabaseError'
+
+  /profile/driver:
+    put:
+      summary: Update driver profile
+      description: Update driver-specific profile information (drivers and admins only)
+      tags:
+        - Profile
+      security:
+        - sessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DriverProfileInput'
+      responses:
+        '200':
+          description: Driver profile updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProfileResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/DatabaseError'
+
+components:
+  securitySchemes:
+    sessionAuth:
+      type: apiKey
+      in: cookie
+      name: session
+      description: Session-based authentication using HTTP-only cookies
+
+  schemas:
+    Meal:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Unique meal identifier
+        name:
+          type: string
+          description: Meal name
+        description:
+          type: string
+          description: Meal description
+        price:
+          type: number
+          format: float
+          description: Meal price
+        ingredients:
+          type: array
+          items:
+            type: string
+          description: List of ingredients
+        created_at:
+          type: string
+          format: date-time
+          description: Creation timestamp
+        updated_at:
+          type: string
+          format: date-time
+          description: Last update timestamp
+
+    MealInput:
+      type: object
+      required:
+        - name
+        - description
+        - price
+      properties:
+        name:
+          type: string
+          description: Meal name
+        description:
+          type: string
+          description: Meal description
+        price:
+          type: number
+          format: float
+          description: Meal price
+        ingredients:
+          type: array
+          items:
+            type: string
+          description: List of ingredients
+
+    Menu:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Unique menu identifier
+        name:
+          type: string
+          description: Menu name
+        description:
+          type: string
+          description: Menu description
+        week_start:
+          type: string
+          format: date
+          description: Start date of the menu week
+        meals:
+          type: array
+          items:
+            $ref: '#/components/schemas/Meal'
+          description: Meals included in this menu
+        created_at:
+          type: string
+          format: date-time
+          description: Creation timestamp
+        updated_at:
+          type: string
+          format: date-time
+          description: Last update timestamp
+
+    MenuInput:
+      type: object
+      required:
+        - name
+        - week_start
+      properties:
+        name:
+          type: string
+          description: Menu name
+        description:
+          type: string
+          description: Menu description
+        week_start:
+          type: string
+          format: date
+          description: Start date of the menu week
+        meal_ids:
+          type: array
+          items:
+            type: integer
+          description: IDs of meals to include in this menu
+
+    UserProfile:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Profile ID
+        user_id:
+          type: integer
+          description: Associated user ID
+        first_name:
+          type: string
+          description: User's first name
+        last_name:
+          type: string
+          description: User's last name
+        phone:
+          type: string
+          description: Phone number
+        address:
+          type: string
+          description: User's address
+        created_at:
+          type: string
+          format: date-time
+          description: Creation timestamp
+        updated_at:
+          type: string
+          format: date-time
+          description: Last update timestamp
+
+    ProfileResponse:
+      type: object
+      properties:
+        profile:
+          $ref: '#/components/schemas/UserProfile'
+
+    ProfileInput:
+      type: object
+      properties:
+        first_name:
+          type: string
+          description: User's first name
+        last_name:
+          type: string
+          description: User's last name
+        phone:
+          type: string
+          description: Phone number
+        address:
+          type: string
+          description: User's address
+
+    DriverProfileInput:
+      type: object
+      properties:
+        is_available:
+          type: boolean
+          description: Driver availability status
+        vehicle_type:
+          type: string
+          description: Type of vehicle
+        license_number:
+          type: string
+          description: Driver's license number
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              description: Error code
+            message:
+              type: string
+              description: Human-readable error message
+            details:
+              type: string
+              description: Additional error details
+            request_id:
+              type: string
+              description: Request ID for tracking
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    Unauthorized:
+      description: Authentication required
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    Forbidden:
+      description: Insufficient permissions
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    DatabaseError:
+      description: Database operation failed
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+tags:
+  - name: General
+    description: General application endpoints
+  - name: Authentication
+    description: User authentication and session management
+  - name: Meals
+    description: Meal management operations
+  - name: Menus
+    description: Menu management operations
+  - name: Profile
+    description: User profile management 
